@@ -3,18 +3,16 @@
 // Package:    LambdaB
 // Class:      LambdaB
 // 
-/**\class LambdaB LambdaB.cc BpHaNa/LambdaB/src/LambdaB.cc
+/**\class LambdaB LambdaB.cc BpHaNA/LambdaB/src/LambdaB.cc
 
  Description: [one line class summary]
 
  Implementation:
      [Notes on implementation]
 */
-//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//
 // Original Author:  Niladribihari Sahoo,42 3-024,+41227662373,
-//         Created:  Fri Sep  4 15:04:16 CEST 2015
-//         updated: Wed Nov 4 2015
-//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//         Created:  Tue Dec  8 23:43:26 CET 2015
 // $Id$
 //
 //
