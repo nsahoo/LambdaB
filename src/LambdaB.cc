@@ -11,7 +11,7 @@
      [Notes on implementation]
 */
 //--------------------------------------------------------------------
-// >>> Ntuplizer code for /\b -> /\(->p+pi) mu+ mu- <<<
+// >>>   Ntuplizer code for /\b -> /\(->p+pi) mu+ mu-   <<<
 // Original Author:  Niladribihari Sahoo,42 3-024,+41227662373,
 //         Created:  Tue Dec  8 23:43:26 CET 2015
 //--------------------------------------------------------------------
@@ -36,6 +36,36 @@
 
 #include "MagneticField/Engine/interface/MagneticField.h"
 #include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
+
+#include "DataFormats/Common/interface/Handle.h"
+#include "DataFormats/Common/interface/TriggerResults.h"
+#include "DataFormats/BeamSpot/interface/BeamSpot.h"
+#include "DataFormats/VertexReco/interface/Vertex.h"
+#include "DataFormats/VertexReco/interface/VertexFwd.h"
+#include "DataFormats/PatCandidates/interface/Muon.h"
+#include "DataFormats/PatCandidates/interface/CompositeCandidate.h"
+#include "DataFormats/PatCandidates/interface/GenericParticle.h"
+#include "DataFormats/Candidate/interface/VertexCompositeCandidate.h"
+#include "DataFormats/RecoCandidate/interface/RecoCandidate.h"
+#include "DataFormats/RecoCandidate/interface/RecoChargedCandidate.h"
+#include "DataFormats/RecoCandidate/interface/RecoChargedCandidateFwd.h"
+
+#include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
+#include "TrackingTools/TransientTrack/interface/TransientTrack.h"
+#include "TrackingTools/PatternTools/interface/ClosestApproachInRPhi.h"
+
+
+#include "RecoVertex/KinematicFitPrimitives/interface/ParticleMass.h"
+#include "RecoVertex/KinematicFitPrimitives/interface/RefCountedKinematicParticle.h"
+#include "RecoVertex/KinematicFitPrimitives/interface/TransientTrackKinematicParticle.h"
+#include "RecoVertex/KinematicFitPrimitives/interface/KinematicParticleFactoryFromTransientTrack.h"
+#include "RecoVertex/KinematicFit/interface/KinematicParticleVertexFitter.h"
+#include "RecoVertex/KinematicFit/interface/KinematicParticleFitter.h"
+#include "RecoVertex/KinematicFit/interface/MassKinematicConstraint.h"
+#include "RecoVertex/KinematicFit/interface/KinematicConstrainedVertexFitter.h"
+#include "RecoVertex/VertexTools/interface/VertexDistance3D.h"
+
+#include "CommonTools/Statistics/interface/ChiSquaredProbability.h"
 
 #include <TFile.h>
 #include <TTree.h>
@@ -85,7 +115,7 @@ enum HistName{
   h_lbvtxchisq,
   h_lbvtxcl,
 
-  h_lzmass,   // lb = LambdaB, lz = Lambda
+  h_lzmass,   // lb = LambdaB, lz = Lambda0
   h_lbmass,
 
   kHistNameSize
@@ -116,9 +146,9 @@ HistArgs hist_args[kHistNameSize] = {
   {"h_lbvtxchisq", "#lambda_{b} decay vertex chisq", 100, 0, 1000},
   {"h_lbvtxcl", "#lambda_{b} decay vertex CL", 100, 0, 1},
 
-  {"h_lzmass", "#lambda^{0} mass; M(#lambda^{0}) [GeV/^{2}]", 100, 0, 20},
+  {"h_lzmass", "#lambda^{0} mass; M(#lambda^{0}) [GeV/^{2}]", 100, 0, 20},   // Lambda0 mass
 
-  {"h_lbmass", "#lambda_{b} mass; M(#lambda_{b}) [GeV]", 100, 0, 20},
+  {"h_lbmass", "#lambda_{b} mass; M(#lambda_{b}) [GeV]", 100, 0, 20},     // LambdaB mass
 
 };
 
@@ -171,6 +201,78 @@ class LambdaB : public edm::EDAnalyzer {
 
 
       // ----------member data ---------------------------
+
+
+  // --- begin input from python file ---                                                                                                                                        
+  string OutputFileName_;
+
+  bool BuildLbToLzMuMu_;
+
+  // particle properties                                                                                                                                                         
+  ParticleMass MuonMass_;
+  float MuonMassErr_;
+  ParticleMass PionMass_;
+  float PionMassErr_;
+  ParticleMass ProtonMass_;
+  float ProtonMassErr_;
+  double LbMass_;
+
+  // labels                                                                                                                                                                      
+  edm::InputTag GenParticlesLabel_;
+  edm::InputTag TriggerResultsLabel_;
+  edm::InputTag BeamSpotLabel_;
+  edm::InputTag VertexLabel_;
+  edm::InputTag MuonLabel_;
+  //edm::InputTag KshortLabel_;
+  edm::InputTag TrackLabel_;
+  vector<string> TriggerNames_;
+  vector<string> LastFilterNames_;
+
+  // gen particle                                                                                                                                                                
+  bool   IsMonteCarlo_;
+  bool   KeepGENOnly_;
+  double TruthMatchMuonMaxR_;
+  double TruthMatchPionMaxR_;
+  double TruthMatchProtonMaxR_;
+
+  // pre-selection cuts                                                                                                                                                          
+  double MuonMinPt_;
+  double MuonMaxEta_;
+  double MuonMaxDcaBs_;
+  double TrkMinPt_;
+  double TrkMinDcaSigBs_;
+  double TrkMaxR_;
+  double TrkMaxZ_;
+  double MuMuMaxDca_;
+  double MuMuMinVtxCl_;
+  double MuMuMinPt_;
+  double MuMuMinInvMass_;
+  double MuMuMaxInvMass_;
+  double MuMuMinLxySigmaBs_;
+  double MuMuMinCosAlphaBs_;
+  double LzMinMass_;
+  double LzMaxMass_;
+  double LbMinVtxCl_;
+  double LbMinMass_;
+  double LbMaxMass_;
+
+
+  // Across the event                                                                                                                                                            
+  map<string, string> mapTriggerToLastFilter_;
+  reco::BeamSpot beamSpot_;
+  edm::ESHandle<MagneticField> bFieldHandle_;
+  reco::Vertex primaryVertex_;
+
+  // ---- Root Variables ----                                                                                                                                                    
+  TFile* fout_;
+  TTree* tree_;
+
+  unsigned int run, event, lumiblock, nprivtx;
+  vector<string> *triggernames;
+  vector<int> *triggerprescales;
+
+
+
 };
 
 //
