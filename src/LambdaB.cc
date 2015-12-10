@@ -577,6 +577,39 @@ void
 LambdaB::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
 
+  clearVariables();
+  
+  run = iEvent.id().run() ;
+  event = iEvent.id().event() ;
+  lumiblock = iEvent.luminosityBlock();
+
+  n_processed_ += 1;
+  histos[h_events]->Fill(0);
+
+  if (IsMonteCarlo_) saveGenInfo(iEvent);
+
+  hltReport(iEvent);
+
+  if ( KeepGENOnly_){
+    tree_->Fill();
+    n_selected_ += 1;
+  }else{
+    if ( hasBeamSpot(iEvent) ) {
+      iSetup.get<IdealMagneticFieldRecord>().get(bFieldHandle_);
+      if ( bFieldHandle_.isValid() && hasPrimaryVertex(iEvent) ) {
+	buildLbToLzMuMu(iEvent) ;
+	if (IsMonteCarlo_) saveTruthMatch(iEvent);
+	n_selected_ += 1;               
+      }
+    }
+   
+    if (IsMonteCarlo_ || nb > 0){ // Keep failed events for MC to calculate reconstruction efficiency.
+      tree_->Fill();
+    }
+  }
+
+
+  clearVariables();
 
 }
 
@@ -585,12 +618,193 @@ LambdaB::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 void 
 LambdaB::beginJob()
 {
+
+  t_begin_.Set();
+  printf("\n ---------- Begin Job ---------- \n");
+  t_begin_.Print();
+
+  n_processed_ = 0;
+  n_selected_ = 0;
+
+
+  fout_ = new TFile(OutputFileName_.c_str(), "RECREATE");
+  fout_->cd();
+
+  for(int i=0; i<kHistNameSize; i++) {
+    histos[i] = new TH1F(hist_args[i].name, hist_args[i].title,
+			 hist_args[i].n_bins,
+			 hist_args[i].x_min, hist_args[i].x_max);
+
+  }
+
+
+  tree_ = new TTree ("tree", "LambdaB");
+
+  tree_->Branch("run", &run, "run/i");
+  tree_->Branch("event", &event, "event/i");
+  tree_->Branch("lumiblock", &lumiblock, "lumiblock/i");
+  tree_->Branch("nprivtx", &nprivtx, "nprivtx/i");
+  tree_->Branch("triggernames", &triggernames);
+  tree_->Branch("triggerprescales", &triggerprescales);
+  tree_->Branch("mumdcabs", &mumdcabs);
+  tree_->Branch("mumdcabserr", &mumdcabserr);
+  tree_->Branch("mumpx", &mumpx);
+  tree_->Branch("mumpy", &mumpy);
+  tree_->Branch("mumpz", &mumpz);
+  tree_->Branch("mupdcabs", &mupdcabs);
+  tree_->Branch("mupdcabserr", &mupdcabserr);
+  tree_->Branch("muppx", &muppx);
+  tree_->Branch("muppy", &muppy);
+  tree_->Branch("muppz", &muppz);
+  tree_->Branch("mumutrkr", &mumutrkr);
+  tree_->Branch("mumutrkz", &mumutrkz);
+  tree_->Branch("mumudca", &mumudca);
+  tree_->Branch("mumuvtxcl", &mumuvtxcl);
+  tree_->Branch("mumulsbs", &mumulsbs);
+  tree_->Branch("mumulsbserr", &mumulsbserr);
+  tree_->Branch("mumucosalphabs", &mumucosalphabs);
+  tree_->Branch("mumucosalphabserr", &mumucosalphabserr);
+  tree_->Branch("mumumass", &mumumass);
+  tree_->Branch("mumumasserr", &mumumasserr);
+  tree_->Branch("mumisgoodmuon", &mumisgoodmuon);
+  tree_->Branch("mupisgoodmuon", &mupisgoodmuon);
+  tree_->Branch("mumnpixhits", &mumnpixhits);
+  tree_->Branch("mupnpixhits", &mupnpixhits);
+  tree_->Branch("mumnpixlayers", &mumnpixlayers);
+  tree_->Branch("mupnpixlayers", &mupnpixlayers);
+  tree_->Branch("mumntrkhits", &mumntrkhits);
+  tree_->Branch("mupntrkhits", &mupntrkhits);
+  tree_->Branch("mumntrklayers", &mumntrklayers);
+  tree_->Branch("mupntrklayers", &mupntrklayers);
+  tree_->Branch("mumnormchi2", &mumnormchi2);
+  tree_->Branch("mupnormchi2", &mupnormchi2);
+  tree_->Branch("mumdxyvtx", &mumdxyvtx);
+  tree_->Branch("mupdxyvtx", &mupdxyvtx);
+  tree_->Branch("mumdzvtx", &mumdzvtx);
+  tree_->Branch("mupdzvtx", &mupdzvtx);
+  tree_->Branch("mumtriglastfilter", &mumtriglastfilter);
+  tree_->Branch("muptriglastfilter", &muptriglastfilter);
+  tree_->Branch("mumpt", &mumpt);
+  tree_->Branch("muppt", &muppt);
+  tree_->Branch("mumeta", &mumeta);
+  tree_->Branch("mupeta", &mupeta);
+  tree_->Branch("trkchg", &trkchg);
+  tree_->Branch("trkpx", &trkpx);
+  tree_->Branch("trkpy", &trkpy);
+  tree_->Branch("trkpz", &trkpz);
+  tree_->Branch("trkpt", &trkpt);
+  tree_->Branch("trkdcabs", &trkdcabs);
+  tree_->Branch("trkdcabserr", &trkdcabserr);
+  tree_->Branch("lzpx", &lzpx);
+  tree_->Branch("lzpy", &lzpy);
+  tree_->Branch("lzpz", &lzpz);
+  tree_->Branch("lzvtxx", &lzvtxx);
+  tree_->Branch("lzvtxy", &lzvtxy);
+  tree_->Branch("lzvtxz", &lzvtxz);
+  tree_->Branch("prpx", &prpx);
+  tree_->Branch("prpy", &prpy);
+  tree_->Branch("prpz", &prpz);
+  tree_->Branch("pipx", &pipx);
+  tree_->Branch("pipy", &pipy);
+  tree_->Branch("pipz", &pipz);
+  tree_->Branch("lzmass", &lzmass);
+  tree_->Branch("lzmasserr", &lzmasserr);
+  tree_->Branch("lzbarmass", &lzbarmass);
+  tree_->Branch("lzbarmasserr", &lzbarmasserr);
+  tree_->Branch("nb", &nb, "nb/I");
+  tree_->Branch("lbpx", &lbpx);
+  tree_->Branch("lbpxerr", &lbpxerr);
+  tree_->Branch("lbpy", &lbpy);
+  tree_->Branch("lbpyerr", &lbpyerr);
+  tree_->Branch("lbpz", &lbpz);
+  tree_->Branch("lbpzerr", &lbpzerr);
+  tree_->Branch("lbmass", &lbmass);
+  tree_->Branch("lbmasserr", &lbmasserr);
+  tree_->Branch("lbvtxcl", &lbvtxcl);
+  tree_->Branch("lbvtxx", &lbvtxx);
+  tree_->Branch("lbvtxxerr", &lbvtxxerr);
+  tree_->Branch("lbvtxy", &lbvtxy);
+  tree_->Branch("lbvtxyerr", &lbvtxyerr);
+  tree_->Branch("lbvtxz", &lbvtxz);
+  tree_->Branch("lbvtxzerr", &lbvtxzerr);
+  tree_->Branch("lbcosalphabs", &lbcosalphabs);
+  tree_->Branch("lbcosalphabserr", &lbcosalphabserr);
+  tree_->Branch("lbcosalphabs2d", &lbcosalphabs2d);           
+  tree_->Branch("lbcosalphabs2derr", &lbcosalphabs2derr);    
+  tree_->Branch("lblsbs", &lblsbs);
+  tree_->Branch("lblsbserr", &lblsbserr);
+  tree_->Branch("lbctau", &lbctau);
+  tree_->Branch("lbctauerr", &lbctauerr);
+  tree_->Branch("lbbarmass", &lbbarmass);
+  tree_->Branch("lbbarmasserr", &lbbarmasserr);
+
+  if (IsMonteCarlo_) {
+
+    tree_->Branch("genlbpx",      &genlbpx     , "genlbpx/D"    );
+    tree_->Branch("genlbpy",      &genlbpy     , "genlbpy/D"    );
+    tree_->Branch("genlbpz",      &genlbpz     , "genlbpz/D"    );
+    tree_->Branch("genlzpx",      &genlzpx   , "genlzpx/D"  );
+    tree_->Branch("genlzpy",      &genlzpy   , "genlzpy/D"  );
+    tree_->Branch("genlzpz",      &genlzpz   , "genlzpz/D"  );
+    tree_->Branch("genlzvtxx",     &genlzvtxx    , "genlzvtxx/D"   );
+    tree_->Branch("genlzvtxy",     &genlzvtxy    , "genlzvtxy/D"   );
+    tree_->Branch("genlzvtxz",     &genlzvtxz    , "genlzvtxz/D"   );
+    tree_->Branch("genprchg",    &genprchg   , "genprchg/I"   );
+    tree_->Branch("genprpx",     &genprpx    , "genprpx/D"   );
+    tree_->Branch("genprpy",     &genprpy    , "genprpy/D"   );
+    tree_->Branch("genprpz",     &genprpz    , "genprpz/D"   );
+    tree_->Branch("genpichg",    &genpichg   , "genpichg/I"   );
+    tree_->Branch("genpipx",     &genpipx    , "genpipx/D"   );
+    tree_->Branch("genpipy",     &genpipy    , "genpipy/D"   );
+    tree_->Branch("genpipz",     &genpipz    , "genpipz/D"   );
+    tree_->Branch("genmumpx",    &genmumpx   , "genmumpx/D"  );
+    tree_->Branch("genmumpy",    &genmumpy   , "genmumpy/D"  );
+    tree_->Branch("genmumpz",    &genmumpz   , "genmumpz/D"  );
+    tree_->Branch("genmuppx",    &genmuppx   , "genmuppx/D"  );
+    tree_->Branch("genmuppy",    &genmuppy   , "genmuppy/D"  );
+    tree_->Branch("genmuppz",    &genmuppz   , "genmuppz/D"  );
+    tree_->Branch("genpimpx",    &genpimpx   , "genpimpx/D"  );
+    tree_->Branch("genpimpy",    &genpimpy   , "genpimpy/D"  );
+    tree_->Branch("genpimpz",    &genpimpz   , "genpimpz/D"  );
+    tree_->Branch("genpippx",    &genpippx   , "genpippx/D"  );
+    tree_->Branch("genpippy",    &genpippy   , "genpippy/D"  );
+    tree_->Branch("genpippz",    &genpippz   , "genpippz/D"  );
+    tree_->Branch("decname",  &decname);
+    tree_->Branch("istruemum",  &istruemum );
+    tree_->Branch("istruemup",  &istruemup );
+    tree_->Branch("istruepr",   &istruepr  );
+    tree_->Branch("istruepi",   &istruepi  );
+    tree_->Branch("istruelb",   &istruelb  );
+
+
+  }
+
+
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
 void 
 LambdaB::endJob() 
 {
+
+  fout_->cd();
+  tree_->Write();
+
+  for(int i = 0; i < kHistNameSize; i++) {
+    histos[i]->Write();
+    histos[i]->Delete();
+  }
+  fout_->Close();
+
+  t_now_.Set();
+  printf(" \n ---------- End Job ---------- \n" ) ;
+  t_now_.Print();
+  printf(" processed: %i \n selected: %i \n \
+ duration: %i sec \n rate: %g evts/sec\n",
+         n_processed_, n_selected_,
+         t_now_.Convert() - t_begin_.Convert(),
+         float(n_processed_)/(t_now_.Convert()-t_begin_.Convert()) );
+
 }
 
 // ------------ method called when starting to processes a run  ------------
@@ -626,6 +840,152 @@ LambdaB::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   desc.setUnknown();
   descriptions.addDefault(desc);
 }
+
+void 
+LambdaB::clearVariables(){
+  run = 0;
+  event = 0;
+  lumiblock = 0;
+  nprivtx = 0;
+  triggernames->clear();
+  triggerprescales->clear();
+  mumdcabs->clear();  mumdcabserr->clear();  mumpx->clear();   mumpy->clear();  mumpz->clear();
+  mupdcabs->clear();  mupdcabserr->clear();  muppx->clear();   muppy->clear();  muppz->clear();
+  mumutrkr->clear(); mumutrkz->clear();
+  mumudca->clear();  mumuvtxcl->clear();   mumulsbs->clear();  mumulsbserr->clear();
+  mumucosalphabs->clear();  mumucosalphabserr->clear();
+  mumumass->clear(); mumumasserr->clear();
+  mumisgoodmuon->clear();  mupisgoodmuon->clear();
+  mumnpixhits->clear();  mupnpixhits->clear();  mumnpixlayers->clear();  mupnpixlayers->clear();
+  mumntrkhits->clear();  mupntrkhits->clear();  mumntrklayers->clear();  mupntrklayers->clear();
+  mumnormchi2->clear(); mupnormchi2->clear(); 
+  mumdxyvtx->clear(); mupdxyvtx->clear();
+  mumdzvtx->clear(); mupdzvtx->clear();  
+  mumtriglastfilter->clear(); muptriglastfilter->clear();
+  mumpt->clear(); muppt->clear();
+  mumeta->clear(); mupeta->clear();
+
+  trkchg->clear(); trkpx->clear(); trkpy->clear(); trkpz->clear(); trkpt->clear();
+  trkdcabs->clear(); trkdcabserr->clear();
+
+  lzpx->clear(); lzpy->clear(); lzpz->clear();
+  lzvtxx->clear(); lzvtxy->clear(); lzvtxz->clear();
+
+  prpx->clear(); prpy->clear(); prpz->clear();
+  pipx->clear(); pipy->clear(); pipz->clear();
+
+  lzmass->clear(); lzmasserr->clear();
+  lzbarmass->clear(); lzbarmasserr->clear();
+
+  nb = 0;
+
+  lbpx->clear(); lbpxerr->clear(); lbpy->clear();  lbpyerr->clear();
+  lbpz->clear(); lbpzerr->clear();
+
+  lbmass->clear(); lbmasserr->clear();
+  lbvtxcl->clear(); lbvtxx->clear(); lbvtxxerr->clear(); lbvtxy->clear();
+  lbvtxyerr->clear();
+  lbvtxz->clear(); lbvtxzerr->clear(); lbcosalphabs->clear(); lbcosalphabserr->clear();
+  lbcosalphabs2d->clear(); lbcosalphabs2derr->clear();
+  lblsbs->clear(); lblsbserr->clear();  lbctau->clear(); lbctauerr->clear();
+
+  lbbarmass->clear(); lbbarmasserr->clear();
+
+  if (IsMonteCarlo_) {
+
+    genlbpx = 0;    genlbpy = 0;    genlbpz = 0;
+    genlzpx = 0;  genlzpy = 0;  genlzpz = 0;
+    genlzvtxx = 0; genlzvtxy = 0; genlzvtxz = 0;
+
+    genprchg = 0;
+    genprpx = 0;  genprpy = 0;  genprpz = 0;
+    genpichg = 0;
+    genpipx = 0;  genpipy = 0;  genpipz = 0;
+
+    genmumpx = 0;  genmumpy = 0;  genmumpz = 0;
+    genmuppx = 0;  genmuppy = 0;  genmuppz = 0;
+
+    genpippx = 0; genpippy = 0; genpippz = 0;
+    genpimpx = 0; genpimpy = 0; genpimpz = 0;
+
+    decname = "";
+    istruemum->clear(); istruemup->clear(); istruepr->clear();
+    istruepi->clear(); istruelb->clear();
+
+
+  }
+
+}
+
+
+void 
+LambdaB::hltReport(const edm::Event& iEvent)
+{
+
+  edm::Handle<edm::TriggerResults> hltTriggerResults;
+  try {iEvent.getByLabel( TriggerResultsLabel_, hltTriggerResults ); }
+  catch ( ... ) { edm::LogInfo("myHLT")
+      << __LINE__ << " : couldn't get handle on HLT Trigger" ; }
+
+  HLTConfigProvider hltConfig_;
+  if (hltTriggerResults.isValid()) {
+    const edm::TriggerNames& triggerNames_ = iEvent.triggerNames(*hltTriggerResults);
+
+    for (unsigned int itrig = 0; itrig < hltTriggerResults->size(); itrig++){
+
+      // Only consider the triggered case.                                                                                                                                   
+      if ((*hltTriggerResults)[itrig].accept() == 1){
+
+        string triggername = triggerNames_.triggerName(itrig);
+        int triggerprescale = hltConfig_.prescaleValue(itrig, triggername);
+
+        // Loop over our interested HLT trigger names to find if this event contains.                                                                                        
+        for (unsigned int it=0; it<TriggerNames_.size(); it++){
+          if (triggername.find(TriggerNames_[it]) != string::npos) {
+            // save the no versioned case                                                                                                                                    
+            triggernames->push_back(TriggerNames_[it]);
+            triggerprescales->push_back(triggerprescale);
+
+          }}}}}
+
+}
+
+
+bool
+LambdaB::hasBeamSpot(const edm::Event& iEvent)
+{
+  edm::Handle<reco::BeamSpot> beamSpotHandle;
+  iEvent.getByLabel(BeamSpotLabel_, beamSpotHandle);
+
+  if ( ! beamSpotHandle.isValid() ) {
+    edm::LogError("myBeam") << "No beam spot available from EventSetup" ;
+    return false;
+  }
+
+  beamSpot_ = *beamSpotHandle;
+  return true;
+}
+
+
+bool
+LambdaB::hasPrimaryVertex(const edm::Event& iEvent)
+{
+  edm::Handle<reco::VertexCollection> recVtxs;
+  iEvent.getByLabel(VertexLabel_, recVtxs);
+  nprivtx = recVtxs->size();
+
+  for (std::vector<reco::Vertex>::const_iterator iVertex = recVtxs->begin();
+       iVertex != recVtxs->end(); iVertex++) {
+    primaryVertex_ = *(iVertex);
+    if (primaryVertex_.isValid()) break;
+  }
+
+  if (!primaryVertex_.isValid()) return false;
+
+  return true;
+}
+
+
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(LambdaB);
