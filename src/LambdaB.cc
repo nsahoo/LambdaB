@@ -91,7 +91,7 @@ const double PI = 3.141592653589793;
 
 //-------------
 // Structures  
-//-------------                                                                                                                                                         
+//-------------                                                                                                                                              
 struct HistArgs{
   char name[128];
   char title[128];
@@ -264,13 +264,13 @@ class LambdaB : public edm::EDAnalyzer {
       // ----------member data ---------------------------
 
 
-  // --- begin input from python file ---                                                                                                                                        
+  // --- begin input from python file ---                                                                                                                     
   string OutputFileName_;
   bool BuildLbToLzMuMu_;
 
   //----------------------
   // particle properties  
-  //----------------------                                                                                                                                                       
+  //----------------------                                                                                                                                
   ParticleMass MuonMass_;
   float MuonMassErr_;
   ParticleMass PionMass_;
@@ -281,7 +281,7 @@ class LambdaB : public edm::EDAnalyzer {
 
   //----------
   // labels   
-  //----------                                                                                                                                                                   
+  //----------                                                                                                                                            
   edm::InputTag GenParticlesLabel_;
   edm::InputTag TriggerResultsLabel_;
   edm::InputTag BeamSpotLabel_;
@@ -294,7 +294,7 @@ class LambdaB : public edm::EDAnalyzer {
 
   //---------------
   // gen particle  
-  //---------------                                                                                                                                                              
+  //---------------                                                                                                                                       
   bool   IsMonteCarlo_;
   bool   KeepGENOnly_;
   double TruthMatchMuonMaxR_;
@@ -303,7 +303,7 @@ class LambdaB : public edm::EDAnalyzer {
 
   //---------------------
   // pre-selection cuts  
-  //---------------------                                                                                                                                                        
+  //---------------------                                                                                                                                       
   double MuonMinPt_;
   double MuonMaxEta_;
   double MuonMaxDcaBs_;
@@ -326,14 +326,14 @@ class LambdaB : public edm::EDAnalyzer {
 
   //--------------------
   // Across the event   
-  //--------------------                                                                                                                                                         
+  //--------------------                                                                                                                                      
   map<string, string> mapTriggerToLastFilter_;
   reco::BeamSpot beamSpot_;
   edm::ESHandle<MagneticField> bFieldHandle_;
   reco::Vertex primaryVertex_;
 
   //-----------------
-  // Root Variables                                                                                                                                                     
+  // Root Variables                                                                                                                                        
   //-----------------
   TFile* fout_;
   TTree* tree_;
@@ -354,7 +354,7 @@ class LambdaB : public edm::EDAnalyzer {
 
   //-----------------------
   // soft muon variables   
-  //-----------------------                                                                                                                                                
+  //-----------------------                                                                                                                                    
   vector<bool>   *mumisgoodmuon, *mupisgoodmuon ;
   vector<int>    *mumnpixhits, *mupnpixhits, *mumnpixlayers, *mupnpixlayers;
   vector<int>    *mumntrkhits, *mupntrkhits, *mumntrklayers, *mupntrklayers;
@@ -366,7 +366,7 @@ class LambdaB : public edm::EDAnalyzer {
   //---------------
   // pion track                                                                                                                                                       
   //---------------
-  vector<int> *trkchg; // +1 for pi+, -1 for pi-                                                                                                                                
+  vector<int> *trkchg; // +1 for pi+, -1 for pi-                                                                                                                
   vector<double> *trkpx, *trkpy, *trkpz, *trkpt;
   vector<double> *trkdcabs, *trkdcabserr;
 
@@ -375,28 +375,54 @@ class LambdaB : public edm::EDAnalyzer {
 
   //--------------------
   // proton, pion track 
-  //--------------------                                                                                                                                                 
+  //--------------------                                                                                                                                       
   vector<double> *prpx, *prpy, *prpz;
   vector<double> *pipx, *pipy, *pipz;
 
   //-----------
-  // Lambda0 
+  // Lambda0, anti-Lambda0 
   //-----------
-  vector<double> *lzmass;
+  vector<double> *lzmass, *lzmasserr, *lzbarmass, *lzbarmasserr;
 
   //-----------
   // LambdaB
   //-----------
   int nb;
-  vector<double> *bpx, *bpxerr, *bpy, *bpyerr, *bpz, *bpzerr, *bmass, *bmasserr;
-  vector<double> *bvtxcl, *bvtxx, *bvtxxerr, *bvtxy, *bvtxyerr, *bvtxz, *bvtxzerr;
-  vector<double> *bcosalphabs, *bcosalphabserr, *bcosalphabs2d, *bcosalphabs2derr, *blsbs, *blsbserr, *bctau, *bctauerr; 
+  vector<double> *lbpx, *lbpxerr, *lbpy, *lbpyerr, *lbpz, *lbpzerr, *lbmass, *lbmasserr;
+  vector<double> *lbvtxcl, *lbvtxx, *lbvtxxerr, *lbvtxy, *lbvtxyerr, *lbvtxz, *lbvtxzerr;
+  vector<double> *lbcosalphabs, *lbcosalphabserr, *lbcosalphabs2d, *lbcosalphabs2derr, *lblsbs, *lblsbserr, *lbctau, *lbctauerr; 
 
   //---------------
-  // B0 and B0bar  
+  // anti-LambdaB
   //---------------                                                                                                                                                
-  vector<double> *bbarmass, *bbarmasserr;
+  vector<double> *lbbarmass, *lbbarmasserr;
 
+  //---------
+  // For MC  
+  //---------                                                                                                                                               
+  double genlbpx, genlbpy, genlbpz;
+  double genlzpx, genlzpy, genlzpz;
+  double genlzvtxx, genlzvtxy, genlzvtxz;
+
+  int genprchg;
+  double genprpx, genprpy, genprpz;
+  int genpichg;
+  double genpipx, genpipy, genpipz;
+
+  double genmumpx, genmumpy, genmumpz;
+  double genmuppx, genmuppy, genmuppz;
+  double genpippx, genpippy, genpippz;
+  double genpimpx, genpimpy, genpimpz;
+
+  string decname;
+
+  vector<bool> *istruemum, *istruemup, *istruepr, *istruepi, *istruelb;
+
+  //-----------------------
+  // variables to monitor  
+  //-----------------------                                                                                                                                    
+  TDatime t_begin_ , t_now_ ;
+  int n_processed_, n_selected_;
 
 
 };
@@ -409,13 +435,126 @@ class LambdaB : public edm::EDAnalyzer {
 // static data member definitions
 //
 
-//
+//-------------------------------
 // constructors and destructor
-//
-LambdaB::LambdaB(const edm::ParameterSet& iConfig)
+//-------------------------------
+LambdaB::LambdaB(const edm::ParameterSet& iConfig):
+  OutputFileName_(iConfig.getParameter<string>("OutputFileName")),
+  BuildLbToLzMuMu_(iConfig.getUntrackedParameter<bool>("BuildLbToLzMuMu")),
+
+  //----------------------
+  // particle properties  
+  //----------------------                                                                                                                                     
+  MuonMass_(iConfig.getUntrackedParameter<double>("MuonMass")),
+  MuonMassErr_(iConfig.getUntrackedParameter<double>("MuonMassErr")),
+  PionMass_(iConfig.getUntrackedParameter<double>("PionMass")),
+  PionMassErr_(iConfig.getUntrackedParameter<double>("PionMassErr")),
+  ProtonMass_(iConfig.getUntrackedParameter<double>("ProtonMass")),
+  ProtonMassErr_(iConfig.getUntrackedParameter<double>("ProtonMassErr")),
+  LbMass_(iConfig.getUntrackedParameter<double>("LbMass")),
+
+  //---------
+  // labels  
+  //---------                                                                                                                                                  
+  GenParticlesLabel_(iConfig.getParameter<edm::InputTag>("GenParticlesLabel")),
+  TriggerResultsLabel_(iConfig.getParameter<edm::InputTag>("TriggerResultsLabel")),
+  BeamSpotLabel_(iConfig.getParameter<edm::InputTag>("BeamSpotLabel")),
+  VertexLabel_(iConfig.getParameter<edm::InputTag>("VertexLabel")),
+  MuonLabel_(iConfig.getParameter<edm::InputTag>("MuonLabel")),
+  TrackLabel_(iConfig.getParameter<edm::InputTag>("TrackLabel")),
+  TriggerNames_(iConfig.getParameter< vector<string> >("TriggerNames")),
+  LastFilterNames_(iConfig.getParameter< vector<string> >("LastFilterNames")),
+
+  //----------------
+  // gen particle   
+  //----------------                                                                                                                                          
+  IsMonteCarlo_(iConfig.getUntrackedParameter<bool>("IsMonteCarlo")),
+  KeepGENOnly_(iConfig.getUntrackedParameter<bool>("KeepGENOnly")),
+  TruthMatchMuonMaxR_(iConfig.getUntrackedParameter<double>("TruthMatchMuonMaxR")),
+  TruthMatchPionMaxR_(iConfig.getUntrackedParameter<double>("TruthMatchPionMaxR")),
+  TruthMatchProtonMaxR_(iConfig.getUntrackedParameter<double>("TruthMatchProtonMaxR")),
+  
+  //--------------------
+  // pre-selection cuts 
+  //--------------------                                                                                                                                      
+  MuonMinPt_(iConfig.getUntrackedParameter<double>("MuonMinPt")),
+  MuonMaxEta_(iConfig.getUntrackedParameter<double>("MuonMaxEta")),
+  MuonMaxDcaBs_(iConfig.getUntrackedParameter<double>("MuonMaxDcaBs")),
+
+  TrkMinPt_(iConfig.getUntrackedParameter<double>("TrkMinPt")),
+  TrkMinDcaSigBs_(iConfig.getUntrackedParameter<double>("TrkMinDcaSigBs")),
+  TrkMaxR_(iConfig.getUntrackedParameter<double>("TrkMaxR")),
+  TrkMaxZ_(iConfig.getUntrackedParameter<double>("TrkMaxZ")),
+
+  MuMuMaxDca_(iConfig.getUntrackedParameter<double>("MuMuMaxDca")),
+  MuMuMinVtxCl_(iConfig.getUntrackedParameter<double>("MuMuMinVtxCl")),
+  MuMuMinPt_(iConfig.getUntrackedParameter<double>("MuMuMinPt")),
+  MuMuMinInvMass_(iConfig.getUntrackedParameter<double>("MuMuMinInvMass")),
+  MuMuMaxInvMass_(iConfig.getUntrackedParameter<double>("MuMuMaxInvMass")),
+  MuMuMinLxySigmaBs_(iConfig.getUntrackedParameter<double>("MuMuMinLxySigmaBs")),
+  MuMuMinCosAlphaBs_(iConfig.getUntrackedParameter<double>("MuMuMinCosAlphaBs")),
+
+  LzMinMass_(iConfig.getUntrackedParameter<double>("LzMinMass")),
+  LzMaxMass_(iConfig.getUntrackedParameter<double>("LzMaxMass")),
+  LbMinVtxCl_(iConfig.getUntrackedParameter<double>("LbMinVtxCl")),
+  LbMinMass_(iConfig.getUntrackedParameter<double>("LbMinMass")),
+  LbMaxMass_(iConfig.getUntrackedParameter<double>("LbMaxMass")),
+
+  tree_(0),
+  triggernames(0), triggerprescales(0),
+  mumdcabs(0), mumdcabserr(0), mumpx(0), mumpy(0), mumpz(0),
+  mupdcabs(0),  mupdcabserr(0), muppx(0),  muppy(0), muppz(0),
+  mumutrkr(0), mumutrkz(0), mumudca(0),  mumuvtxcl(0),  mumulsbs(0),
+  mumulsbserr(0), mumucosalphabs(0),  mumucosalphabserr(0),
+  mumumass(0), mumumasserr(0),
+  mumisgoodmuon(0), mupisgoodmuon(0),
+  mumnpixhits(0), mupnpixhits(0), mumnpixlayers(0), mupnpixlayers(0),
+  mumntrkhits(0), mupntrkhits(0), mumntrklayers(0), mupntrklayers(0),
+  mumnormchi2(0), mupnormchi2(0), mumdxyvtx(0), mupdxyvtx(0),
+  mumdzvtx(0), mupdzvtx(0), mumtriglastfilter(0), muptriglastfilter(0),
+  mumpt(0), muppt(0), mumeta(0), mupeta(0),
+
+  trkchg(0), trkpx(0), trkpy(0), trkpz(0), trkpt(0),
+  trkdcabs(0), trkdcabserr(0),
+
+  lzpx(0), lzpy(0), lzpz(0),
+  lzvtxx(0), lzvtxy(0), lzvtxz(0),
+
+  prpx(0), prpy(0), prpz(0),
+  pipx(0), pipy(0), pipz(0),
+
+  lzmass(0), lzmasserr(0), lzbarmass(0), lzbarmasserr(0),
+
+  nb(0), lbpx(0), lbpxerr(0), lbpy(0), lbpyerr(0), lbpz(0), lbpzerr(0), lbmass(0), lbmasserr(0),
+  lbvtxcl(0), lbvtxx(0), lbvtxxerr(0), lbvtxy(0), lbvtxyerr(0), lbvtxz(0), lbvtxzerr(0),
+  lbcosalphabs(0), lbcosalphabserr(0), lbcosalphabs2d(0), lbcosalphabs2derr(0), lblsbs(0), lblsbserr(0), lbctau(0), lbctauerr(0),
+
+  lbbarmass(0), lbbarmasserr(0),
+
+  genlbpx(0), genlbpy(0), genlbpz(0),
+  genlzpx(0), genlzpy(0), genlzpz(0), genlzvtxx(0), genlzvtxy(0), genlzvtxz(0),
+
+  genprchg(0),
+  genprpx(0), genprpy(0), genprpz(0),
+
+  genpichg(0),
+  genpipx(0), genpipy(0), genpipz(0),
+
+  genmumpx(0), genmumpy(0), genmumpz(0),
+  genmuppx(0), genmuppy(0), genmuppz(0),
+
+  genpippx(0), genpippy(0), genpippz(0),
+  genpimpx(0), genpimpy(0), genpimpz(0),
+
+  decname(""),
+  istruemum(0), istruemup(0), istruepr(0), istruepi(0), istruelb(0)
+
 
 {
    //now do what ever initialization is needed
+  assert(TriggerNames_.size() == LastFilterNames_.size());
+  for (size_t i = 0; i < TriggerNames_.size(); ++i)
+    mapTriggerToLastFilter_[TriggerNames_[i]] = LastFilterNames_[i];
 
 }
 

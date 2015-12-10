@@ -1,21 +1,21 @@
  LambdaB -> Lambda(p+pi)MuMu Analysis 
 ---------------------------------------
 
-To download the repository
+1. To download the repository
 
 $ cd /path/to/your/destination/
 
 $ git clone https://github.com/nsahoo/LambdaB.git
 
-Once you do "git clone" , go to the LambdaB directory
+2. Once you do "git clone" , go to the LambdaB directory
 
 $ cd LambdaB/src
 
-do the compilation
+3. do the compilation
 
 $ scram b 
 
-run the python script in python subdirectory
+4. run the python script in python subdirectory
 
 $ cd LambdaB/python/
 
