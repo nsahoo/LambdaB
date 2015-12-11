@@ -986,6 +986,599 @@ LambdaB::hasPrimaryVertex(const edm::Event& iEvent)
 }
 
 
+bool
+LambdaB::hasGoodTrack(const edm::Event& iEvent,
+			   const pat::GenericParticle iTrack,
+			   double & trk_pt)
+{
+  reco::TrackRef theTrackRef = iTrack.track();
+  if ( theTrackRef.isNull() ) return false;
+
+  // veto muon tracks                                                                                                                                                             
+  if ( matchMuonTrack(iEvent, theTrackRef) ) return false;
+
+  // check the track kinematics                                                                                                                                                   
+  trk_pt = theTrackRef->pt();
+
+  if ( theTrackRef->pt() < TrkMinPt_ ) return false;
+
+  return true;
+}
+
+
+bool
+LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
+{
+
+  // init variables                                                                                                                               
+  edm::Handle< vector<pat::Muon> > patMuonHandle;
+  iEvent.getByLabel(MuonLabel_, patMuonHandle);
+  if( patMuonHandle->size() < 2 ) return false;
+
+  edm::Handle< vector<pat::GenericParticle> >thePATTrackHandle;
+  iEvent.getByLabel(TrackLabel_, thePATTrackHandle);
+
+  bool passed;
+  double DCAmumBS, DCAmumBSErr, DCAmupBS, DCAmupBSErr;
+  double mumutrk_R, mumutrk_Z, DCAmumu;
+  double trk_R, trk_Z, trk_DCA;
+  reco::TransientTrack refitMupTT, refitMumTT;
+  double mu_mu_vtx_cl, mu_mu_pt, mu_mu_mass, mu_mu_mass_err;
+  double MuMuLSBS, MuMuLSBSErr;
+  double MuMuCosAlphaBS, MuMuCosAlphaBSErr;
+  double trk_pt, lz_mass, lb_vtx_chisq, lb_vtx_cl, lb_mass, lbbar_mass;
+  double DCALzTrkBS, DCALzTrkBSErr;
+  RefCountedKinematicTree vertexFitTree, barVertexFitTree;
+
+  // --------------------                               
+  // loop 1: mu-                                                                                                                                                            
+  // --------------------                                                                                                                      
+  for (vector<pat::Muon>::const_iterator iMuonM = patMuonHandle->begin();
+       iMuonM != patMuonHandle->end(); iMuonM++){
+
+    reco::TrackRef muTrackm = iMuonM->innerTrack();
+    if ( muTrackm.isNull() ) continue;
+
+    histos[h_mupt]->Fill(muTrackm->pt());
+    histos[h_mueta]->Fill(muTrackm->eta());
+
+    if ( (muTrackm->charge() != -1) ||
+         (muTrackm->pt() < MuonMinPt_) ||
+         (fabs(muTrackm->eta()) > MuonMaxEta_)) continue;
+
+    // check mu- DCA to beam spot                                                                                                                                 
+    const reco::TransientTrack muTrackmTT(muTrackm, &(*bFieldHandle_));
+    passed = hasGoodMuonDcaBs(muTrackmTT, DCAmumBS, DCAmumBSErr) ;
+    histos[h_mumdcabs]->Fill(DCAmumBS);
+    if ( ! passed ) continue;
+
+    // --------------------- 
+    // loop 2: mu+                                                                                                                      
+    // ---------------------                                                                                                                                           
+    for (vector<pat::Muon>::const_iterator iMuonP = patMuonHandle->begin();
+         iMuonP != patMuonHandle->end(); iMuonP++){
+
+      reco::TrackRef muTrackp = iMuonP->innerTrack();
+      if ( muTrackp.isNull() ||
+           (muTrackp->charge() != 1) ||
+           (muTrackp->pt() < MuonMinPt_) ||
+           (fabs(muTrackp->eta()) > MuonMaxEta_)) continue;
+
+      // check mu+ DCA to beam spot                                                                                                             
+      const reco::TransientTrack muTrackpTT(muTrackp, &(*bFieldHandle_));
+      passed = hasGoodMuonDcaBs(muTrackpTT, DCAmupBS, DCAmupBSErr);
+      if ( ! passed ) continue;
+
+
+      // check goodness of muons closest approach and the 3D-DCA                                                                                             
+      // passed = hasGoodClosestApproachTracks(muTrackpTT, muTrackmTT,                                                                                              
+      //                                            mumutrk_R, mumutrk_Z, DCAmumu);                                                                                         
+      if ( !calClosestApproachTracks(muTrackpTT, muTrackmTT,
+                                     mumutrk_R, mumutrk_Z, DCAmumu)) continue;
+      histos[h_mumutrkr]->Fill(mumutrk_R);
+      histos[h_mumutrkz]->Fill(mumutrk_Z);
+      histos[h_mumudca]->Fill(DCAmumu);
+      // if ( !passed ) continue;                                                                                                                                             
+      if ( mumutrk_R > TrkMaxR_ ||
+           mumutrk_Z > TrkMaxZ_ ||
+           DCAmumu > MuMuMaxDca_ ) continue;
+
+      // check dimuon vertex                                                                                                                                            
+      passed = hasGoodMuMuVertex(muTrackpTT, muTrackmTT, refitMupTT, refitMumTT,
+                                 mu_mu_vtx_cl, mu_mu_pt,
+                                 mu_mu_mass, mu_mu_mass_err,
+                                 MuMuLSBS, MuMuLSBSErr,
+                                 MuMuCosAlphaBS, MuMuCosAlphaBSErr);
+
+      histos[h_mumuvtxcl]->Fill(mu_mu_vtx_cl);
+      histos[h_mumupt]->Fill(mu_mu_pt);
+      histos[h_mumumass]->Fill(mu_mu_mass);
+      histos[h_mumulxybs]->Fill(MuMuLSBS/MuMuLSBSErr);
+      histos[h_mumucosalphabs]->Fill(MuMuCosAlphaBS);
+      if ( !passed) continue;
+
+      // --------------------                                                                                                                          
+      // loop 3: track-                                                                                                                                                     
+      // --------------------                       
+      for ( vector<pat::GenericParticle>::const_iterator iTrackM
+              = thePATTrackHandle->begin();
+            iTrackM != thePATTrackHandle->end(); ++iTrackM ) {
+
+	reco::TrackRef Trackm = iTrackM->track();
+        if ( Trackm.isNull() || (Trackm->charge() != -1) ) continue;
+
+        passed = hasGoodTrack(iEvent, *iTrackM, trk_pt);
+        histos[h_trkpt]->Fill(trk_pt);
+        if (!passed) continue;
+
+        // compute track- DCA to beam spot                                                                                                                           
+        const reco::TransientTrack theTrackmTT(Trackm, &(*bFieldHandle_));
+        passed = hasGoodTrackDcaBs(theTrackmTT, DCALzTrkBS, DCALzTrkBSErr);
+        histos[h_trkdcasigbs]->Fill(DCALzTrkBS/DCALzTrkBSErr);
+        if (!passed) continue;
+
+        // --------------------- 
+        // loop 4: track+                                                                                                                                                       
+        // ---------------------   
+        for ( vector<pat::GenericParticle>::const_iterator iTrackP
+                = thePATTrackHandle->begin();
+              iTrackP != thePATTrackHandle->end(); ++iTrackP ) {
+
+	  reco::TrackRef Trackp = iTrackP->track();
+          if ( Trackp.isNull() || (Trackp->charge() != 1) ) continue;
+
+          passed = hasGoodTrack(iEvent, *iTrackP, trk_pt);
+          // histos[h_trkpt]->Fill(trk_pt);                                                                                                                          
+          if (!passed) continue;
+
+          // compute track+ DCA to beam spot                                                                                                                             
+          const reco::TransientTrack theTrackpTT(Trackp, &(*bFieldHandle_));
+          passed = hasGoodTrackDcaBs(theTrackpTT, DCALzTrkBS, DCALzTrkBSErr);
+          if (!passed) continue;
+
+
+	  // check goodness of two tracks closest approach and the 3D-DCA                                                              
+          if (! calClosestApproachTracks(theTrackpTT, theTrackmTT,
+                                         trk_R, trk_Z, trk_DCA)) continue ;
+          if ( trk_R > TrkMaxR_ || trk_Z > TrkMaxZ_ ) continue;
+
+          // check two tracks vertex for /\b                                                                                                    
+          if ( ! hasGoodLzVertex(theTrackmTT, theTrackpTT,
+                                           lz_mass) ) continue;
+          if ( lz_mass < LzMinMass_ || lz_mass > LzMaxMass_ ) continue;
+
+          // check two tracks vertex for /\bbar                                                                                                       
+          if ( ! hasGoodLzVertex(theTrackpTT, theTrackmTT,
+                                           lz_mass) ) continue;
+
+          histos[h_lzmass]->Fill(lz_mass);
+
+          if ( lz_mass < LzMinMass_ || lz_mass > LzMaxMass_ ) continue;
+
+
+	  // fit /\b vertex  mu- mu+ pi- p+                                                                                                            
+          if ( ! hasGoodLbVertex(muTrackmTT, muTrackpTT, theTrackmTT, theTrackpTT,
+                                 lb_vtx_chisq, lb_vtx_cl, lb_mass,
+                                 vertexFitTree) ) continue;
+
+          histos[h_lbvtxchisq]->Fill(lb_vtx_chisq);
+          histos[h_lbvtxcl]->Fill(lb_vtx_cl);
+
+          if ( lb_vtx_cl < LbMinVtxCl_ || 
+	       lb_mass < LbMinMass_ || lb_mass > LbMaxMass_ ) continue;
+
+	  // fit /\bbar vertex mu- mu+ pi+ p-                                                                                                                
+          if ( ! hasGoodLbVertex(muTrackmTT, muTrackpTT, theTrackpTT, theTrackmTT,
+                                 lb_vtx_chisq, lb_vtx_cl, lbbar_mass,
+                                 barVertexFitTree) ) continue;
+
+          if ( lb_vtx_cl < LbMinVtxCl_ ||
+	       lbbar_mass < LbMinMass_ || lbbar_mass > LbMaxMass_ ) continue;
+
+	  // need to check with primaryVertex tracks ???                                                                                                           
+
+          nb++;
+
+          // save the tree variables                                                                                                                                           
+          saveDimuVariables(DCAmumBS, DCAmumBSErr, DCAmupBS, DCAmupBSErr,
+                            mumutrk_R, mumutrk_Z, DCAmumu, mu_mu_vtx_cl,
+                            MuMuLSBS, MuMuLSBSErr,
+                            MuMuCosAlphaBS, MuMuCosAlphaBSErr,
+                            mu_mu_mass, mu_mu_mass_err);
+
+          saveSoftMuonVariables(*iMuonM, *iMuonP, muTrackm, muTrackp);
+          trkpt->push_back(trk_pt);
+          trkdcabs->push_back(DCALzTrkBS);
+          trkdcabserr->push_back(DCALzTrkBSErr);
+          lzmass->push_back(lz_mass);
+	  lbvtxcl->push_back(lb_vtx_cl);
+
+          saveLbToLzMuMu(vertexFitTree);
+          saveLbVertex(vertexFitTree);
+          saveLbCosAlpha(vertexFitTree);
+          saveLbCosAlpha2d(vertexFitTree);
+          saveLbLsig(vertexFitTree);
+          saveLbCtau(vertexFitTree);
+
+        } // close track+ loop                                                                                                                                    
+      } // close track- loop                                                                                                                                          
+    } // close mu+ loop                                                                                                                                        
+  } // close mu- loop                                                                                                                                         
+
+  if ( nb > 0) {
+    edm::LogInfo("myLb") << "Found " << nb << " /\b -> /\0 mu+ mu- ";
+    return true;
+  }
+  return false;
+
+}
+
+
+void
+LambdaB::calLS (double Vx, double Vy, double Vz,
+                double Wx, double Wy, double Wz,
+                double VxErr2, double VyErr2, double VzErr2,
+                double VxyCov, double VxzCov, double VyzCov,
+                double WxErr2, double WyErr2, double WzErr2,
+                double WxyCov, double WxzCov, double WyzCov,
+                double* deltaD, double* deltaDErr)
+{
+  *deltaD = sqrt((Vx-Wx) * (Vx-Wx) + (Vy-Wy) * (Vy-Wy) + (Vz-Wz) * (Vz-Wz));
+  if (*deltaD > 0.)
+    *deltaDErr = sqrt((Vx-Wx) * (Vx-Wx) * VxErr2 +
+                      (Vy-Wy) * (Vy-Wy) * VyErr2 +
+                      (Vz-Wz) * (Vz-Wz) * VzErr2 +
+
+                      (Vx-Wx) * (Vy-Wy) * 2.*VxyCov +
+                      (Vx-Wx) * (Vz-Wz) * 2.*VxzCov +
+                      (Vy-Wy) * (Vz-Wz) * 2.*VyzCov +
+
+                      (Vx-Wx) * (Vx-Wx) * WxErr2 +
+                      (Vy-Wy) * (Vy-Wy) * WyErr2 +
+                      (Vz-Wz) * (Vz-Wz) * WzErr2 +
+
+                      (Vx-Wx) * (Vy-Wy) * 2.*WxyCov +
+                      (Vx-Wx) * (Vz-Wz) * 2.*WxzCov +
+                      (Vy-Wy) * (Vz-Wz) * 2.*WyzCov) / *deltaD;
+  else *deltaDErr = 0.;
+}
+
+
+void
+LambdaB::calCosAlpha (double Vx, double Vy, double Vz,
+                      double Wx, double Wy, double Wz,
+                      double VxErr2, double VyErr2, double VzErr2,
+                      double VxyCov, double VxzCov, double VyzCov,
+                      double WxErr2, double WyErr2, double WzErr2,
+                      double WxyCov, double WxzCov, double WyzCov,
+                      double* cosAlpha, double* cosAlphaErr)
+{
+  double Vnorm = sqrt(Vx*Vx + Vy*Vy + Vz*Vz);
+  double Wnorm = sqrt(Wx*Wx + Wy*Wy + Wz*Wz);
+  double VdotW = Vx*Wx + Vy*Wy + Vz*Wz;
+
+  if ((Vnorm > 0.) && (Wnorm > 0.)) {
+    *cosAlpha = VdotW / (Vnorm * Wnorm);
+    *cosAlphaErr = sqrt( (
+			  (Vx*Wnorm - VdotW*Wx) * (Vx*Wnorm - VdotW*Wx) * WxErr2 +
+			  (Vy*Wnorm - VdotW*Wy) * (Vy*Wnorm - VdotW*Wy) * WyErr2 +
+			  (Vz*Wnorm - VdotW*Wz) * (Vz*Wnorm - VdotW*Wz) * WzErr2 +
+
+			  (Vx*Wnorm - VdotW*Wx) * (Vy*Wnorm - VdotW*Wy) * 2.*WxyCov +
+			  (Vx*Wnorm - VdotW*Wx) * (Vz*Wnorm - VdotW*Wz) * 2.*WxzCov +
+			  (Vy*Wnorm - VdotW*Wy) * (Vz*Wnorm - VdotW*Wz) * 2.*WyzCov) /
+		                        	 (Wnorm*Wnorm*Wnorm*Wnorm) +
+
+			 ((Wx*Vnorm - VdotW*Vx) * (Wx*Vnorm - VdotW*Vx) * VxErr2 +
+			  (Wy*Vnorm - VdotW*Vy) * (Wy*Vnorm - VdotW*Vy) * VyErr2 +
+			  (Wz*Vnorm - VdotW*Vz) * (Wz*Vnorm - VdotW*Vz) * VzErr2 +
+
+			  (Wx*Vnorm - VdotW*Vx) * (Wy*Vnorm - VdotW*Vy) * 2.*VxyCov +
+			  (Wx*Vnorm - VdotW*Vx) * (Wz*Vnorm - VdotW*Vz) * 2.*VxzCov +
+			  (Wy*Vnorm - VdotW*Vy) * (Wz*Vnorm - VdotW*Vz) * 2.*VyzCov) /
+			              (Vnorm*Vnorm*Vnorm*Vnorm) ) / (Wnorm*Vnorm);
+
+  }  else {
+    *cosAlpha = 0.;
+    *cosAlphaErr = 0.;
+  }
+}
+
+
+void
+LambdaB::calCosAlpha2d (double Vx, double Vy, double Vz,
+                        double Wx, double Wy, double Wz,
+                        double VxErr2, double VyErr2, double VzErr2,
+                        double VxyCov, double VxzCov, double VyzCov,
+                        double WxErr2, double WyErr2, double WzErr2,
+                        double WxyCov, double WxzCov, double WyzCov,
+                        double* cosAlpha2d, double* cosAlpha2dErr)
+{
+  double Vnorm = sqrt(Vx*Vx + Vy*Vy + Vz*Vz);
+  double Wnorm = sqrt(Wx*Wx + Wy*Wy + Wz*Wz);
+  double VdotW = Vx*Wx + Vy*Wy + Vz*Wz;
+
+  if ((Vnorm > 0.) && (Wnorm > 0.)) {
+    *cosAlpha2d = VdotW / (Vnorm * Wnorm);
+    *cosAlpha2dErr = sqrt( (
+			    (Vx*Wnorm - VdotW*Wx) * (Vx*Wnorm - VdotW*Wx) * WxErr2 +
+			    (Vy*Wnorm - VdotW*Wy) * (Vy*Wnorm - VdotW*Wy) * WyErr2 +
+			    (Vz*Wnorm - VdotW*Wz) * (Vz*Wnorm - VdotW*Wz) * WzErr2 +
+
+			    (Vx*Wnorm - VdotW*Wx) * (Vy*Wnorm - VdotW*Wy) * 2.*WxyCov +
+			    (Vx*Wnorm - VdotW*Wx) * (Vz*Wnorm - VdotW*Wz) * 2.*WxzCov +
+			    (Vy*Wnorm - VdotW*Wy) * (Vz*Wnorm - VdotW*Wz) * 2.*WyzCov) /
+			   (Wnorm*Wnorm*Wnorm*Wnorm) +
+
+			   ((Wx*Vnorm - VdotW*Vx) * (Wx*Vnorm - VdotW*Vx) * VxErr2 +
+			    (Wy*Vnorm - VdotW*Vy) * (Wy*Vnorm - VdotW*Vy) * VyErr2 +
+			    (Wz*Vnorm - VdotW*Vz) * (Wz*Vnorm - VdotW*Vz) * VzErr2 +
+
+			    (Wx*Vnorm - VdotW*Vx) * (Wy*Vnorm - VdotW*Vy) * 2.*VxyCov +
+			    (Wx*Vnorm - VdotW*Vx) * (Wz*Vnorm - VdotW*Vz) * 2.*VxzCov +
+			    (Wy*Vnorm - VdotW*Vy) * (Wz*Vnorm - VdotW*Vz) * 2.*VyzCov) /
+			   (Vnorm*Vnorm*Vnorm*Vnorm) ) / (Wnorm*Vnorm);
+  }  else {
+    *cosAlpha2d = 0.;
+    *cosAlpha2dErr = 0.;
+  }
+}
+
+
+
+bool
+LambdaB::hasGoodMuonDcaBs (const reco::TransientTrack muTrackTT,
+                                double &muDcaBs, double &muDcaBsErr)
+{
+  TrajectoryStateClosestToPoint theDCAXBS =
+    muTrackTT.trajectoryStateClosestToPoint(
+					    GlobalPoint(beamSpot_.position().x(),
+							beamSpot_.position().y(),beamSpot_.position().z()));
+
+  if ( !theDCAXBS.isValid() )  return false;
+
+  muDcaBs = theDCAXBS.perigeeParameters().transverseImpactParameter();
+  muDcaBsErr = theDCAXBS.perigeeError().transverseImpactParameterError();
+  if ( fabs(muDcaBs) > MuonMaxDcaBs_ )   return false;
+  return true;
+}
+
+
+bool
+LambdaB::hasGoodTrackDcaBs (const reco::TransientTrack TrackTT,
+                                 double &DcaBs, double &DcaBsErr)
+{
+  TrajectoryStateClosestToPoint theDCAXBS =
+    TrackTT.trajectoryStateClosestToPoint(
+					  GlobalPoint(beamSpot_.position().x(),
+						      beamSpot_.position().y(),beamSpot_.position().z()));
+
+  if ( !theDCAXBS.isValid() )  return false;
+
+  DcaBs = theDCAXBS.perigeeParameters().transverseImpactParameter();
+  DcaBsErr = theDCAXBS.perigeeError().transverseImpactParameterError();
+  if ( fabs(DcaBs/DcaBsErr) < TrkMinDcaSigBs_ )   return false;
+  return true;
+}
+
+
+bool
+LambdaB::hasGoodTrackDcaPoint (const reco::TransientTrack track,
+                               const GlobalPoint p,
+                               double maxdca, double &dca, double &dcaerr)
+{
+  TrajectoryStateClosestToPoint theDCAX = track.trajectoryStateClosestToPoint(p);
+  if ( !theDCAX.isValid() ) return false;
+
+  dca = theDCAX.perigeeParameters().transverseImpactParameter();
+  dcaerr = theDCAX.perigeeError().transverseImpactParameterError();
+  if ( dca > maxdca ) return false;
+
+  return true;
+}
+
+bool
+LambdaB::calClosestApproachTracks (const reco::TransientTrack trackpTT,
+                                        const reco::TransientTrack trackmTT,
+                                        double & trk_R,
+                                        double & trk_Z,
+                                        double & trk_DCA)
+{
+  ClosestApproachInRPhi ClosestApp;
+  ClosestApp.calculate(trackpTT.initialFreeState(),
+                       trackmTT.initialFreeState());
+  if (! ClosestApp.status() )  return false ;
+
+  GlobalPoint XingPoint = ClosestApp.crossingPoint();
+
+  trk_R = sqrt(XingPoint.x()*XingPoint.x() + XingPoint.y()*XingPoint.y());
+  trk_Z = fabs(XingPoint.z());
+
+  // if ((sqrt(XingPoint.x()*XingPoint.x() + XingPoint.y()*XingPoint.y()) >                                                                            
+  //      TrkMaxR_) || (fabs(XingPoint.z()) > TrkMaxZ_))  return false;                                                                                                     
+
+  trk_DCA = ClosestApp.distance();
+  // if (DCAmumu > MuMuMaxDca_) return false;                                                                                                                 
+
+  return true;
+}
+
+
+bool
+LambdaB::hasGoodMuMuVertex (const reco::TransientTrack muTrackpTT,
+                            const reco::TransientTrack muTrackmTT,
+                            reco::TransientTrack &refitMupTT,
+                            reco::TransientTrack &refitMumTT,
+                            double & mu_mu_vtx_cl, double & mu_mu_pt,
+                            double & mu_mu_mass, double & mu_mu_mass_err,
+                            double & MuMuLSBS, double & MuMuLSBSErr,
+                            double & MuMuCosAlphaBS,
+                            double & MuMuCosAlphaBSErr)
+{
+  KinematicParticleFactoryFromTransientTrack partFactory;
+  KinematicParticleVertexFitter PartVtxFitter;
+
+  vector<RefCountedKinematicParticle> muonParticles;
+  double chi = 0.;
+  double ndf = 0.;
+  muonParticles.push_back(partFactory.particle(muTrackmTT,
+                                               MuonMass_,chi,ndf,MuonMassErr_));
+  muonParticles.push_back(partFactory.particle(muTrackpTT,
+                                               MuonMass_,chi,ndf,MuonMassErr_));
+
+  RefCountedKinematicTree mumuVertexFitTree = PartVtxFitter.fit(muonParticles);
+
+  if ( !mumuVertexFitTree->isValid())  return false;
+
+  mumuVertexFitTree->movePointerToTheTop();
+  RefCountedKinematicParticle mumu_KP = mumuVertexFitTree->currentParticle();
+  RefCountedKinematicVertex mumu_KV = mumuVertexFitTree->currentDecayVertex();
+
+  if ( !mumu_KV->vertexIsValid()) return false;
+
+  mu_mu_vtx_cl = TMath::Prob((double)mumu_KV->chiSquared(),
+                             int(rint(mumu_KV->degreesOfFreedom())));
+
+  if (mu_mu_vtx_cl < MuMuMinVtxCl_)  return false;
+
+  // extract the re-fitted tracks                                                                                                               
+  mumuVertexFitTree->movePointerToTheTop();
+
+  mumuVertexFitTree->movePointerToTheFirstChild();
+  RefCountedKinematicParticle refitMum = mumuVertexFitTree->currentParticle();
+  refitMumTT = refitMum->refittedTransientTrack();
+
+  mumuVertexFitTree->movePointerToTheNextChild();
+  RefCountedKinematicParticle refitMup = mumuVertexFitTree->currentParticle();
+  refitMupTT = refitMup->refittedTransientTrack();
+
+  TLorentzVector mymum, mymup, mydimu;
+
+  mymum.SetXYZM(refitMumTT.track().momentum().x(),
+                refitMumTT.track().momentum().y(),
+                refitMumTT.track().momentum().z(), MuonMass_);
+
+  mymup.SetXYZM(refitMupTT.track().momentum().x(),
+                refitMupTT.track().momentum().y(),
+                refitMupTT.track().momentum().z(), MuonMass_);
+
+  mydimu = mymum + mymup;
+  mu_mu_pt = mydimu.Perp();
+
+  mu_mu_mass = mumu_KP->currentState().mass();
+  mu_mu_mass_err = sqrt(mumu_KP->currentState().kinematicParametersError().
+                        matrix()(6,6));
+
+  if ((mu_mu_pt < MuMuMinPt_) || (mu_mu_mass < MuMuMinInvMass_) ||
+      (mu_mu_mass > MuMuMaxInvMass_))  return false;
+
+  // compute the distance between mumu vtx and beam spot                                                                                                         
+  calLS (mumu_KV->position().x(),mumu_KV->position().y(),0.0,
+         beamSpot_.position().x(),beamSpot_.position().y(),0.0,
+         mumu_KV->error().cxx(),mumu_KV->error().cyy(),0.0,
+         mumu_KV->error().matrix()(0,1),0.0,0.0,
+         beamSpot_.covariance()(0,0),beamSpot_.covariance()(1,1),0.0,
+         beamSpot_.covariance()(0,1),0.0,0.0,
+         &MuMuLSBS,&MuMuLSBSErr);
+
+  if (MuMuLSBS/MuMuLSBSErr < MuMuMinLxySigmaBs_)  return false;
+
+  calCosAlpha(mumu_KP->currentState().globalMomentum().x(),
+              mumu_KP->currentState().globalMomentum().y(),
+              0.0,
+              mumu_KV->position().x() - beamSpot_.position().x(),
+              mumu_KV->position().y() - beamSpot_.position().y(),
+              0.0,
+              mumu_KP->currentState().kinematicParametersError().matrix()(3,3),
+              mumu_KP->currentState().kinematicParametersError().matrix()(4,4),
+              0.0,
+              mumu_KP->currentState().kinematicParametersError().matrix()(3,4),
+              0.0,
+              0.0,
+              mumu_KV->error().cxx() + beamSpot_.covariance()(0,0),
+              mumu_KV->error().cyy() + beamSpot_.covariance()(1,1),
+              0.0,
+              mumu_KV->error().matrix()(0,1) + beamSpot_.covariance()(0,1),
+              0.0,
+              0.0,
+              &MuMuCosAlphaBS,&MuMuCosAlphaBSErr);
+
+  if (MuMuCosAlphaBS < MuMuMinCosAlphaBs_)  return false;
+
+  return true;
+
+}
+
+
+bool
+LambdaB::matchMuonTrack (const edm::Event& iEvent,
+                         const reco::TrackRef theTrackRef)
+{
+  if ( theTrackRef.isNull() ) return false;
+
+  edm::Handle< vector<pat::Muon> > thePATMuonHandle;
+  iEvent.getByLabel(MuonLabel_, thePATMuonHandle);
+
+  reco::TrackRef muTrackRef;
+  for (vector<pat::Muon>::const_iterator iMuon = thePATMuonHandle->begin();
+       iMuon != thePATMuonHandle->end(); iMuon++){
+
+    muTrackRef = iMuon->innerTrack();
+    if ( muTrackRef.isNull() ) continue;
+
+    if (muTrackRef == theTrackRef) return true;
+  }
+
+  return false;
+}
+
+
+bool
+LambdaB::matchMuonTracks (const edm::Event& iEvent,
+                          const vector<reco::TrackRef> theTracks)
+{
+  reco::TrackRef theTrackRef;
+  for(unsigned int j = 0; j < theTracks.size(); ++j) {
+    theTrackRef = theTracks[j];
+    if ( matchMuonTrack(iEvent, theTrackRef) ) return true;
+  }
+  return false;
+}
+
+
+bool
+LambdaB::hasGoodLzVertex(const reco::TransientTrack pionTT,
+			 const reco::TransientTrack protonTT,
+			 double & lz_mass)
+{
+  KinematicParticleFactoryFromTransientTrack pFactory;
+
+  float chi = 0.;
+  float ndf = 0.;
+
+  vector<RefCountedKinematicParticle> LzParticles;
+  LzParticles.push_back(pFactory.particle(pionTT,PionMass_,chi,ndf,PionMassErr_));
+  LzParticles.push_back(pFactory.particle(protonTT,ProtonMass_,chi,ndf,ProtonMassErr_));
+
+  KinematicParticleVertexFitter fitter;
+  RefCountedKinematicTree LzVertexFitTree = fitter.fit(LzParticles);
+  if ( ! LzVertexFitTree->isValid() ) return false ;
+
+  LzVertexFitTree->movePointerToTheTop();
+  RefCountedKinematicParticle lz_KP = LzVertexFitTree->currentParticle();
+  RefCountedKinematicVertex lz_KV   = LzVertexFitTree->currentDecayVertex();
+  if ( !lz_KV->vertexIsValid() ) return false;
+
+  lz_mass = lz_KP->currentState().mass();
+
+  return true;
+}
+
+
+
+
+
+
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(LambdaB);
