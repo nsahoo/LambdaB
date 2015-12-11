@@ -376,7 +376,9 @@ class LambdaB : public edm::EDAnalyzer {
   //--------------------
   // proton, pion track 
   //--------------------                                                                                                                                       
+  vector<int> *prchg;
   vector<double> *prpx, *prpy, *prpz;
+  vector<int> *pichg;
   vector<double> *pipx, *pipy, *pipz;
 
   //-----------
@@ -520,7 +522,9 @@ LambdaB::LambdaB(const edm::ParameterSet& iConfig):
   lzpx(0), lzpy(0), lzpz(0),
   lzvtxx(0), lzvtxy(0), lzvtxz(0),
 
+  prchg(0),
   prpx(0), prpy(0), prpz(0),
+  pichg(0),
   pipx(0), pipy(0), pipz(0),
 
   lzmass(0), lzmasserr(0), lzbarmass(0), lzbarmasserr(0),
@@ -701,9 +705,11 @@ LambdaB::beginJob()
   tree_->Branch("lzvtxx", &lzvtxx);
   tree_->Branch("lzvtxy", &lzvtxy);
   tree_->Branch("lzvtxz", &lzvtxz);
+  tree_->Branch("prchg", &prchg);
   tree_->Branch("prpx", &prpx);
   tree_->Branch("prpy", &prpy);
   tree_->Branch("prpz", &prpz);
+  tree_->Branch("pichg", &pichg);
   tree_->Branch("pipx", &pipx);
   tree_->Branch("pipy", &pipy);
   tree_->Branch("pipz", &pipz);
@@ -871,7 +877,9 @@ LambdaB::clearVariables(){
   lzpx->clear(); lzpy->clear(); lzpz->clear();
   lzvtxx->clear(); lzvtxy->clear(); lzvtxz->clear();
 
+  prchg->clear();
   prpx->clear(); prpy->clear(); prpz->clear();
+  pichg->clear();
   pipx->clear(); pipy->clear(); pipz->clear();
 
   lzmass->clear(); lzmasserr->clear();
@@ -1627,8 +1635,535 @@ LambdaB::hasGoodLbVertex(const reco::TransientTrack mu1TT,
   return true;
 }
 
+void
+LambdaB::saveLbToLzMuMu(const RefCountedKinematicTree vertexFitTree){
+
+  vertexFitTree->movePointerToTheTop(); // /\b --> /\(p+ pi-) mu+ mu-                                                                                         
+  RefCountedKinematicParticle lb_KP = vertexFitTree->currentParticle();
+
+  lbpx->push_back(lb_KP->currentState().globalMomentum().x());
+  lbpxerr->push_back( sqrt( lb_KP->currentState().kinematicParametersError().matrix()(3,3) ) );
+  lbpy->push_back(lb_KP->currentState().globalMomentum().y());
+  lbpyerr->push_back( sqrt( lb_KP->currentState().kinematicParametersError().matrix()(4,4) ) );
+  lbpz->push_back(lb_KP->currentState().globalMomentum().z());
+  lbpzerr->push_back( sqrt( lb_KP->currentState().kinematicParametersError().matrix()(5,5) ) );
+  lbmass->push_back(lb_KP->currentState().mass());
+  lbmasserr->push_back( sqrt( lb_KP->currentState().kinematicParametersError().matrix()(6,6) ) );
+
+  vertexFitTree->movePointerToTheFirstChild(); // mu1                                                                                                      
+  RefCountedKinematicParticle mu1_KP = vertexFitTree->currentParticle();
+  vertexFitTree->movePointerToTheNextChild();  // mu2                                                                                                         
+  RefCountedKinematicParticle mu2_KP = vertexFitTree->currentParticle();
+
+  RefCountedKinematicParticle mup_KP, mum_KP ;
+
+  if ( mu1_KP->currentState().particleCharge() > 0 ) mup_KP = mu1_KP;
+  if ( mu1_KP->currentState().particleCharge() < 0 ) mum_KP = mu1_KP;
+  if ( mu2_KP->currentState().particleCharge() > 0 ) mup_KP = mu2_KP;
+  if ( mu2_KP->currentState().particleCharge() < 0 ) mum_KP = mu2_KP;
+
+  muppx->push_back(mup_KP->currentState().globalMomentum().x());
+  muppy->push_back(mup_KP->currentState().globalMomentum().y());
+  muppz->push_back(mup_KP->currentState().globalMomentum().z());
+
+  mumpx->push_back(mum_KP->currentState().globalMomentum().x());
+  mumpy->push_back(mum_KP->currentState().globalMomentum().y());
+  mumpz->push_back(mum_KP->currentState().globalMomentum().z());
 
 
+  vertexFitTree->movePointerToTheNextChild();  // pion track                                                                   
+  RefCountedKinematicParticle pi_KP = vertexFitTree->currentParticle();
+  pichg->push_back(pi_KP->currentState().particleCharge());
+  pipx->push_back(pi_KP->currentState().globalMomentum().x());
+  pipy->push_back(pi_KP->currentState().globalMomentum().y());
+  pipz->push_back(pi_KP->currentState().globalMomentum().z());
+
+  vertexFitTree->movePointerToTheNextChild();  // proton track
+  RefCountedKinematicParticle pr_KP = vertexFitTree->currentParticle();
+  prchg->push_back(pr_KP->currentState().particleCharge());
+  prpx->push_back(pr_KP->currentState().globalMomentum().x());
+  prpy->push_back(pr_KP->currentState().globalMomentum().y());
+  prpz->push_back(pr_KP->currentState().globalMomentum().z());
+
+  //  NEED TO BE UPDATED //
+
+}
+
+void
+LambdaB::saveLbVertex(RefCountedKinematicTree vertexFitTree){
+  vertexFitTree->movePointerToTheTop();
+  RefCountedKinematicVertex lb_KV = vertexFitTree->currentDecayVertex();
+  lbvtxx->push_back((*lb_KV).position().x());
+  lbvtxxerr->push_back(sqrt( abs(lb_KV->error().cxx()) ));
+  lbvtxy->push_back((*lb_KV).position().y());
+  lbvtxyerr->push_back(sqrt( abs(lb_KV->error().cyy()) ));
+  lbvtxz->push_back((*lb_KV).position().z());
+  lbvtxzerr->push_back(sqrt( abs(lb_KV->error().czz()) ));
+
+}
+
+void 
+LambdaB::saveLbCosAlpha(RefCountedKinematicTree vertexFitTree)
+{
+  // alpha is the angle in the transverse plane between the B0 momentum                                                                             
+  // and the seperation between the B0 vertex and the beamspot                                                                                           
+
+  vertexFitTree->movePointerToTheTop();
+  RefCountedKinematicParticle lb_KP = vertexFitTree->currentParticle();
+  RefCountedKinematicVertex   lb_KV = vertexFitTree->currentDecayVertex();
+
+  double cosAlphaBS, cosAlphaBSErr;
+  calCosAlpha(lb_KP->currentState().globalMomentum().x(),
+              lb_KP->currentState().globalMomentum().y(),
+              lb_KP->currentState().globalMomentum().z(),
+              lb_KV->position().x() - beamSpot_.position().x(),
+              lb_KV->position().y() - beamSpot_.position().y(),
+              lb_KV->position().z() - beamSpot_.position().z(),
+              lb_KP->currentState().kinematicParametersError().matrix()(3,3),
+              lb_KP->currentState().kinematicParametersError().matrix()(4,4),
+              lb_KP->currentState().kinematicParametersError().matrix()(5,5),
+              lb_KP->currentState().kinematicParametersError().matrix()(3,4),
+              lb_KP->currentState().kinematicParametersError().matrix()(3,5),
+              lb_KP->currentState().kinematicParametersError().matrix()(4,5),
+              lb_KV->error().cxx() + beamSpot_.covariance()(0,0),
+              lb_KV->error().cyy() + beamSpot_.covariance()(1,1),
+              lb_KV->error().czz() + beamSpot_.covariance()(2,2),
+              lb_KV->error().matrix()(0,1) + beamSpot_.covariance()(0,1),
+              lb_KV->error().matrix()(0,2) + beamSpot_.covariance()(0,2),
+              lb_KV->error().matrix()(1,2) + beamSpot_.covariance()(1,2),
+              &cosAlphaBS,&cosAlphaBSErr);
+
+
+  lbcosalphabs->push_back(cosAlphaBS);
+  lbcosalphabserr->push_back(cosAlphaBSErr);
+
+
+}
+
+void
+LambdaB::saveLbCosAlpha2d(RefCountedKinematicTree vertexFitTree)
+{
+
+  vertexFitTree->movePointerToTheTop();
+  RefCountedKinematicParticle lb_KP = vertexFitTree->currentParticle();
+  RefCountedKinematicVertex   lb_KV = vertexFitTree->currentDecayVertex();
+
+  double cosAlphaBS2d, cosAlphaBS2dErr;
+  calCosAlpha2d(lb_KP->currentState().globalMomentum().x(),
+                lb_KP->currentState().globalMomentum().y(),0.0,                   
+                lb_KV->position().x() - beamSpot_.position().x(),
+                lb_KV->position().y() - beamSpot_.position().y(),0.0,
+                lb_KP->currentState().kinematicParametersError().matrix()(3,3),
+                lb_KP->currentState().kinematicParametersError().matrix()(4,4),0.0,
+                lb_KP->currentState().kinematicParametersError().matrix()(3,4),0.0,0.0,
+                lb_KV->error().cxx() + beamSpot_.covariance()(0,0),
+                lb_KV->error().cyy() + beamSpot_.covariance()(1,1),0.0,
+                lb_KV->error().matrix()(0,1) + beamSpot_.covariance()(0,1),0.0,0.0,
+                &cosAlphaBS2d,&cosAlphaBS2dErr);
+
+
+  lbcosalphabs2d->push_back(cosAlphaBS2d);
+  lbcosalphabs2derr->push_back(cosAlphaBS2dErr);
+
+}
+
+bool
+LambdaB::matchPrimaryVertexTracks ()
+{
+  vector<reco::TransientTrack> vertexTracks;
+  for (vector<reco::TrackBaseRef>::const_iterator iTrack =
+         primaryVertex_.tracks_begin();
+       iTrack != primaryVertex_.tracks_end(); iTrack++){
+    reco::TrackRef trackRef = iTrack->castTo<reco::TrackRef>();
+  }
+
+  return false;
+
+}
+
+void 
+LambdaB::saveLbLsig(RefCountedKinematicTree vertexFitTree)
+{
+  vertexFitTree->movePointerToTheTop();
+  RefCountedKinematicVertex lb_KV = vertexFitTree->currentDecayVertex();
+  double LSBS, LSBSErr;
+
+  calLS (lb_KV->position().x(), lb_KV->position().y(), 0.0,
+         beamSpot_.position().x(), beamSpot_.position().y(), 0.0,
+         lb_KV->error().cxx(), lb_KV->error().cyy(), 0.0,
+         lb_KV->error().matrix()(0,1), 0.0, 0.0,
+         beamSpot_.covariance()(0,0), beamSpot_.covariance()(1,1), 0.0,
+         beamSpot_.covariance()(0,1), 0.0, 0.0,
+         &LSBS,&LSBSErr);
+
+  lblsbs->push_back(LSBS);
+  lblsbserr->push_back(LSBSErr);
+
+}
+
+
+void
+LambdaB::calCtau(RefCountedKinematicTree vertexFitTree,
+                      double &lbctau, double &lbctauerr)
+{
+  //calculate ctau = (mB*(Bvtx-Pvtx)*pB)/(|pB|**2)                                                                                                     
+
+  vertexFitTree->movePointerToTheTop();
+  RefCountedKinematicParticle lb_KP = vertexFitTree->currentParticle();
+  RefCountedKinematicVertex   lb_KV = vertexFitTree->currentDecayVertex();
+
+  double betagamma = (lb_KP->currentState().globalMomentum().mag()/LbMass_);
+
+  // calculate ctau error. Momentum error is negligible compared to                                                                                       
+  // the vertex errors, so don't worry about it                                                                                                         
+
+  GlobalPoint BVP = GlobalPoint( lb_KV->position() );
+  GlobalPoint PVP = GlobalPoint( primaryVertex_.position().x(),
+                                 primaryVertex_.position().y(),
+                                 primaryVertex_.position().z() );
+  GlobalVector sep3D = BVP-PVP;
+  GlobalVector pBV = lb_KP->currentState().globalMomentum();
+  lbctau = (LbMass_* (sep3D.dot(pBV)))/(pBV.dot(pBV));
+
+  GlobalError BVE = lb_KV->error();
+  GlobalError PVE = GlobalError( primaryVertex_.error() );
+  VertexDistance3D theVertexDistance3D;
+  Measurement1D TheMeasurement = theVertexDistance3D.distance( VertexState(BVP, BVE), VertexState(PVP, PVE) );
+  double myError = TheMeasurement.error();
+
+  //  ctau is defined by the portion of the flight distance along                                                                  
+  //  the compoenent of the B momementum, so only consider the error                                                                                      
+  //  of that component, too, which is accomplished by scaling by                                                                                        
+  //  ((VB-VP)(dot)PB)/|VB-VP|*|PB|                                                                                                                       
+
+  double scale = abs( (sep3D.dot(pBV))/(sep3D.mag()*pBV.mag()) );
+  lbctauerr =  (myError*scale)/betagamma;
+
+}
+
+double
+LambdaB::calEta (double Px, double Py, double Pz)
+{
+  double P = sqrt(Px*Px + Py*Py + Pz*Pz);
+  return 0.5*log((P + Pz) / (P - Pz));
+}
+
+double
+LambdaB::calPhi (double Px, double Py, double Pz)
+{
+  double phi = atan(Py / Px);
+  if (Px < 0 && Py < 0) phi = phi - PI;
+  if (Px < 0 && Py > 0) phi = phi + PI;
+  return phi;
+}
+
+double
+LambdaB::calEtaPhiDistance (double Px1, double Py1, double Pz1,
+				 double Px2, double Py2, double Pz2)
+{
+  double phi1 = calPhi (Px1,Py1,Pz1);
+  double eta1 = calEta (Px1,Py1,Pz1);
+  double phi2 = calPhi (Px2,Py2,Pz2);
+  double eta2 = calEta (Px2,Py2,Pz2);
+  return sqrt((eta1-eta2) * (eta1-eta2) + (phi1-phi2) * (phi1-phi2));
+}
+
+
+void 
+LambdaB::saveLbCtau(RefCountedKinematicTree vertexFitTree)
+{
+  double lbctau_temp, lbctauerr_temp;
+  calCtau(vertexFitTree, lbctau_temp, lbctauerr_temp);
+  lbctau->push_back(lbctau_temp);
+  lbctauerr->push_back(lbctauerr_temp);
+}
+
+void
+LambdaB::saveGenInfo(const edm::Event& iEvent){
+  edm::Handle<reco::GenParticleCollection> genparticles;
+  iEvent.getByLabel(GenParticlesLabel_, genparticles );
+
+  // loop over all gen particles                                                                                                                      
+  for( size_t i = 0; i < genparticles->size(); ++i ) {
+    const reco::GenParticle & b = (*genparticles)[i];
+
+    // only select /\b candidate                                                                                                                 
+    if ( abs(b.pdgId()) != LAMBDAB_PDG_ID ) continue;
+
+    int imum(-1), imup(-1), ilambz(-1), ipr(-1), ipi(-1);
+    int ijpsi(-1), ipsi2s(-1);
+
+    // loop over all /\b daughters                                                                                                       
+    for ( size_t j = 0; j < b.numberOfDaughters(); ++j){
+      const reco::Candidate  &dau = *(b.daughter(j));
+
+      if (dau.pdgId() == MUONMINUS_PDG_ID) imum = j;
+      if (dau.pdgId() == -MUONMINUS_PDG_ID) imup = j;
+      if (abs(dau.pdgId()) == LAMBDA_PDG_ID) ilambz = j;
+      if (dau.pdgId() == JPSI_PDG_ID ) ijpsi = j;
+      if (dau.pdgId() == PSI2S_PDG_ID ) ipsi2s = j;
+
+    }
+
+    if ( ilambz == -1 ) continue;
+
+    const reco::Candidate & lambz = *(b.daughter(ilambz));
+
+    for ( size_t j = 0; j < lambz.numberOfDaughters(); ++j){
+      const reco::Candidate  &dau = *(lambz.daughter(j));
+      if (abs(dau.pdgId()) == PROTON_PDG_ID) ipr = j;
+      if (abs(dau.pdgId()) == PIONPLUS_PDG_ID) ipi = j;
+
+    }
+
+    if (ipr == -1 || ipi == -1) continue;
+
+
+    // store the /\b and /\0 vars                                                                                                                        
+    const reco::Candidate & pr = *(lambz.daughter(ipr));
+    const reco::Candidate & pi = *(lambz.daughter(ipi));
+
+
+    const reco::Candidate *mum = NULL;
+    const reco::Candidate *mup = NULL;
+
+
+    //--------------------
+    // /\b -> /\ mu mu    
+    //--------------------                                                                                                                       
+    if (imum != -1 && imup != -1) {
+      // cout << "Found GEN /\b-> /\ mu mu " << endl;                                                                                                    
+      mum = b.daughter(imum);
+      mup = b.daughter(imup);
+      decname = "LbToLzMuMu";
+    }
+
+    //----------------------------
+    // /\b -> /\ J/psi(->mu mu)   
+    //----------------------------                                                                                                            
+    else if ( ijpsi != -1 ) {
+      // cout << "Found GEN /\b --> /\ J/psi " << endl;                                                                                                  
+      const reco::Candidate & jpsi = *(b.daughter(ijpsi));
+      for ( size_t j = 0; j < jpsi.numberOfDaughters(); ++j){
+        const reco::Candidate  &dau = *(jpsi.daughter(j));
+        if ( dau.pdgId() == MUONMINUS_PDG_ID) imum = j;
+        if ( dau.pdgId() == -MUONMINUS_PDG_ID) imup = j;
+      }
+      if (imum != -1 && imup != -1) {
+        mum = jpsi.daughter(imum);
+        mup = jpsi.daughter(imup);
+        decname = "LbToLzJPsi";
+      }
+    }
+
+    //------------------------------
+    // /\b -> /\ psi(2S)(->mu mu)   
+    //------------------------------                                                                                                                    
+    else if ( ipsi2s != -1) {
+      // cout << "Found GEN /\b --> /\ psi(2S) " << endl;                                                                                                 
+      const reco::Candidate & psi2s = *(b.daughter(ipsi2s));
+      for ( size_t j = 0; j < psi2s.numberOfDaughters(); ++j){
+        const reco::Candidate  &dau = *(psi2s.daughter(j));
+        if ( dau.pdgId() == MUONMINUS_PDG_ID) imum = j;
+        if ( dau.pdgId() == -MUONMINUS_PDG_ID) imup = j;
+      }
+      if (imum != -1 && imup != -1) {
+        mum = psi2s.daughter(imum);
+        mup = psi2s.daughter(imup);
+        decname = "LbToLzPsi2S";
+      }
+    }
+
+    if ( mum == NULL || mup == NULL) continue;
+
+    // save gen info                                                                                                                                     
+    genlbpx = b.px();
+    genlbpy = b.py();
+    genlbpz = b.pz();
+
+    genlzpx = lambz.px();
+    genlzpy = lambz.py();
+    genlzpz = lambz.pz();
+
+    genlzvtxx = lambz.vx();
+    genlzvtxy = lambz.vy();
+    genlzvtxz = lambz.vz();
+
+    genprchg = pr.charge();
+    genprpx = pr.px();
+    genprpy = pr.py();
+    genprpz = pr.pz();
+
+    genpichg = pi.charge();
+    genpipx = pi.px();
+    genpipy = pi.py();
+    genpipz = pi.pz();
+
+    genmumpx = mum->px();
+    genmumpy = mum->py();
+    genmumpz = mum->pz();
+
+    genmuppx = mup->px();
+    genmuppy = mup->py();
+    genmuppz = mup->pz();
+  }
+}
+
+
+void
+LambdaB::saveSoftMuonVariables(pat::Muon iMuonM, pat::Muon iMuonP,
+                                    reco::TrackRef muTrackm, reco::TrackRef muTrackp)
+{
+
+  mumisgoodmuon->push_back(muon::isGoodMuon(iMuonM, muon::TMOneStationTight));
+  mupisgoodmuon->push_back(muon::isGoodMuon(iMuonP, muon::TMOneStationTight));
+  mumnpixhits->push_back(muTrackm->hitPattern().numberOfValidPixelHits());
+  mupnpixhits->push_back(muTrackp->hitPattern().numberOfValidPixelHits());
+  mumnpixlayers->push_back(muTrackm->hitPattern().pixelLayersWithMeasurement());
+  mupnpixlayers->push_back(muTrackp->hitPattern().pixelLayersWithMeasurement());
+
+  mumntrkhits->push_back(muTrackm->hitPattern().numberOfValidTrackerHits());
+  mupntrkhits->push_back(muTrackp->hitPattern().numberOfValidTrackerHits());
+  mumntrklayers->push_back(muTrackm->hitPattern().trackerLayersWithMeasurement());
+  mupntrklayers->push_back(muTrackp->hitPattern().trackerLayersWithMeasurement());
+
+  mumnormchi2->push_back(muTrackm->normalizedChi2());
+  mupnormchi2->push_back(muTrackp->normalizedChi2());
+
+  mumdxyvtx->push_back(muTrackm->dxy(primaryVertex_.position()));
+  mupdxyvtx->push_back(muTrackp->dxy(primaryVertex_.position()));
+
+  mumdzvtx->push_back(muTrackm->dz(primaryVertex_.position()));
+  mupdzvtx->push_back(muTrackp->dz(primaryVertex_.position()));
+
+  mumpt->push_back(muTrackm->pt());
+  muppt->push_back(muTrackp->pt());
+
+  mumeta->push_back(muTrackm->eta());
+  mupeta->push_back(muTrackp->eta());
+
+}
+
+
+void
+LambdaB::saveDimuVariables(double DCAmumBS, double DCAmumBSErr,
+                                double DCAmupBS, double DCAmupBSErr,
+                                double mumutrk_R, double mumutrk_Z,
+                                double DCAmumu,  double mu_mu_vtx_cl,
+                                double MuMuLSBS, double MuMuLSBSErr,
+                                double MuMuCosAlphaBS, double MuMuCosAlphaBSErr,
+                                double mu_mu_mass, double mu_mu_mass_err)
+
+{
+  mumdcabs->push_back(DCAmumBS);
+  mumdcabserr->push_back(DCAmumBSErr);
+
+  mupdcabs->push_back(DCAmupBS);
+  mupdcabserr->push_back(DCAmupBSErr);
+
+  mumutrkr->push_back(mumutrk_R);
+  mumutrkz->push_back(mumutrk_Z);
+  mumudca->push_back(DCAmumu);
+  mumuvtxcl->push_back(mu_mu_vtx_cl);
+  mumulsbs->push_back(MuMuLSBS);
+  mumulsbserr->push_back(MuMuLSBSErr);
+  mumucosalphabs->push_back(MuMuCosAlphaBS);
+  mumucosalphabserr->push_back(MuMuCosAlphaBSErr);
+
+  mumumass->push_back(mu_mu_mass);
+  mumumasserr->push_back(mu_mu_mass_err);
+}
+
+void
+LambdaB::saveMuonTriggerMatches(const pat::Muon iMuonM, const pat::Muon iMuonP)
+{
+  string mum_matched_lastfilter_name = "";
+  string mup_matched_lastfilter_name = "";
+
+  for(vector<string>::iterator it = triggernames->begin();
+      it != triggernames->end(); ++it) {
+
+    string hltLastFilterName = mapTriggerToLastFilter_[*it] ;
+
+    const pat::TriggerObjectStandAloneCollection mumHLTMatches
+      = iMuonM.triggerObjectMatchesByFilter( hltLastFilterName );
+    const pat::TriggerObjectStandAloneCollection mupHLTMatches
+      = iMuonP.triggerObjectMatchesByFilter( hltLastFilterName );
+
+    if ( mumHLTMatches.size() > 0 )
+      mum_matched_lastfilter_name.append(hltLastFilterName+" ") ;
+
+    if ( mupHLTMatches.size() > 0 )
+      mup_matched_lastfilter_name.append(hltLastFilterName+" ") ;
+  }
+
+  mumtriglastfilter->push_back(mum_matched_lastfilter_name);
+  muptriglastfilter->push_back(mup_matched_lastfilter_name);
+}
+
+void
+LambdaB::saveTruthMatch(const edm::Event& iEvent){
+  double deltaEtaPhi;
+
+  for (vector<int>::size_type i = 0; i < lbmass->size(); i++) {
+
+    //-----------------------
+    // truth match with mu-  
+    //-----------------------                                                                                                                        
+    deltaEtaPhi = calEtaPhiDistance(genmumpx, genmumpy, genmumpz,
+                                    mumpx->at(i), mumpy->at(i), mumpz->at(i));
+    if (deltaEtaPhi < TruthMatchMuonMaxR_) {
+      istruemum->push_back(true);
+    } else {
+      istruemum->push_back(false);
+    }
+
+    //-----------------------
+    // truth match with mu+  
+    //-----------------------                                                                                                                       
+    deltaEtaPhi = calEtaPhiDistance(genmuppx, genmuppy, genmuppz,
+                                    muppx->at(i), muppy->at(i), muppz->at(i));
+
+    if (deltaEtaPhi < TruthMatchMuonMaxR_) {
+      istruemup->push_back(true);
+    }
+    else {
+      istruemup->push_back(false);
+    }
+
+    //---------------------------------
+    // truth match with proton track   
+    //---------------------------------                                                                                                                       
+    deltaEtaPhi = calEtaPhiDistance(genprpx, genprpy, genprpz,
+                                    prpx->at(i), prpy->at(i), prpz->at(i));
+    if (deltaEtaPhi < TruthMatchProtonMaxR_){
+      istruepr->push_back(true);
+    } else {
+      istruepr->push_back(false);
+    }
+
+    //--------------------------------
+    // truth match with pion track    
+    //--------------------------------                                                                                                                      
+    deltaEtaPhi = calEtaPhiDistance(genpipx, genpipy, genpipz,
+                                    pipx->at(i), pipy->at(i), pipz->at(i));
+    if (deltaEtaPhi < TruthMatchPionMaxR_){
+      istruepi->push_back(true);
+    } else {
+      istruepi->push_back(false);
+    }
+
+    //---------------------------------------
+    // truth match with /\b or /\b bar 
+    //---------------------------------------                                                                                                
+    if ( istruemum->back() && istruemup->back()
+         && istruepr->back() && istruepi->back()) {
+      istruelb->push_back(true);
+    } else {
+      istruelb->push_back(false);
+    }
+  }
+}
 
 
 
