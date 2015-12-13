@@ -49,6 +49,7 @@
 #include "DataFormats/PatCandidates/interface/CompositeCandidate.h"
 #include "DataFormats/PatCandidates/interface/GenericParticle.h"
 #include "DataFormats/Candidate/interface/VertexCompositeCandidate.h"
+#include "DataFormats/Candidate/interface/VertexCompositeCandidateFwd.h"
 #include "DataFormats/RecoCandidate/interface/RecoCandidate.h"
 #include "DataFormats/RecoCandidate/interface/RecoChargedCandidate.h"
 #include "DataFormats/RecoCandidate/interface/RecoChargedCandidateFwd.h"
@@ -287,7 +288,7 @@ class LambdaB : public edm::EDAnalyzer {
   edm::InputTag BeamSpotLabel_;
   edm::InputTag VertexLabel_;
   edm::InputTag MuonLabel_;
-  //edm::InputTag KshortLabel_;
+  edm::InputTag LambdaLabel_;
   edm::InputTag TrackLabel_;
   vector<string> TriggerNames_;
   vector<string> LastFilterNames_;
@@ -463,6 +464,7 @@ LambdaB::LambdaB(const edm::ParameterSet& iConfig):
   BeamSpotLabel_(iConfig.getParameter<edm::InputTag>("BeamSpotLabel")),
   VertexLabel_(iConfig.getParameter<edm::InputTag>("VertexLabel")),
   MuonLabel_(iConfig.getParameter<edm::InputTag>("MuonLabel")),
+  LambdaLabel_(iConfig.getParameter<edm::InputTag>("LambdaLabel")),
   TrackLabel_(iConfig.getParameter<edm::InputTag>("TrackLabel")),
   TriggerNames_(iConfig.getParameter< vector<string> >("TriggerNames")),
   LastFilterNames_(iConfig.getParameter< vector<string> >("LastFilterNames")),
@@ -1023,6 +1025,10 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
   iEvent.getByLabel(MuonLabel_, patMuonHandle);
   if( patMuonHandle->size() < 2 ) return false;
 
+  edm::Handle<reco::VertexCompositeCandidateCollection> theLambdas;
+  iEvent.getByLabel(LambdaLabel_, theLambdas);
+  if ( theLambdas->size() <= 0) return false;
+
   edm::Handle< vector<pat::GenericParticle> >thePATTrackHandle;
   iEvent.getByLabel(TrackLabel_, thePATTrackHandle);
 
@@ -1036,7 +1042,8 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
   double MuMuCosAlphaBS, MuMuCosAlphaBSErr;
   double trk_pt, lz_mass, lzbar_mass, lb_vtx_chisq, lb_vtx_cl, lb_mass, lbbar_mass;
   double DCALzTrkBS, DCALzTrkBSErr;
-  RefCountedKinematicTree vertexFitTree, barVertexFitTree;
+  vector<reco::TrackRef> LambdaDaughterTracks;
+  RefCountedKinematicTree vertexFitTree, barVertexFitTree, lbVertexFitTree;
 
   // --------------------                               
   // loop 1: mu-                                                                                                                          
@@ -1105,6 +1112,23 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
       histos[h_mumucosalphabs]->Fill(MuMuCosAlphaBS);
       if ( !passed) continue;
 
+      //----------------
+      // loop 3: /\0
+      //----------------
+      for ( reco::VertexCompositeCandidateCollection::const_iterator iLambda
+	      = theLambdas->begin(); iLambda != theLambdas->end(); ++iLambda) {
+	
+	LambdaDaughterTracks.push_back((dynamic_cast<const
+					reco::RecoChargedCandidate *>
+					(iLambda->daughter(0)))->track());
+	LambdaDaughterTracks.push_back((dynamic_cast<const
+					reco::RecoChargedCandidate *>
+					(iLambda->daughter(1)))->track());
+	if ( matchMuonTracks(iEvent, LambdaDaughterTracks) ) continue;
+
+
+
+      /*
       // --------------------                                                                                                                          
       // loop 3: track-                                                                                                                       
       // --------------------                       
@@ -1167,8 +1191,10 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 
           if ( lzbar_mass < LzMinMass_ || lzbar_mass > LzMaxMass_ ) continue;
 
+      */
 
-	  // fit /\b vertex  mu- mu+ pi- p+                                                                                                            
+
+	  // fit /\b vertex  mu- mu+ /\(pi- p+)
           if ( ! hasGoodLbVertex(muTrackmTT, muTrackpTT, theTrackmTT, theTrackpTT,
                                  lb_vtx_chisq, lb_vtx_cl, lb_mass,
                                  vertexFitTree) ) continue;
