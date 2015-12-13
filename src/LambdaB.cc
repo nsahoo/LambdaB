@@ -282,6 +282,8 @@ class LambdaB : public edm::EDAnalyzer {
   float MuonMassErr_;
   ParticleMass PionMass_;
   float PionMassErr_;
+  ParticleMass LzMass_;
+  float LzMassErr_;
   ParticleMass ProtonMass_;
   float ProtonMassErr_;
   double LbMass_;
@@ -1245,8 +1247,8 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
           saveLbLsig(vertexFitTree);
           saveLbCtau(vertexFitTree);
 
-        } // close track+ loop                                                                                                                                    
-      } // close track- loop                                                                                                          
+	  //   } // close track+ loop                                                                                                                                    
+      //      } // close track- loop                                                                                                          
     } // close mu+ loop                                                                                                                                        
   } // close mu- loop                                                                                                                                         
 
@@ -1285,7 +1287,9 @@ LambdaB::calLS (double Vx, double Vy, double Vz,
                       (Vx-Wx) * (Vy-Wy) * 2.*WxyCov +
                       (Vx-Wx) * (Vz-Wz) * 2.*WxzCov +
                       (Vy-Wy) * (Vz-Wz) * 2.*WyzCov) / *deltaD;
+
   else *deltaDErr = 0.;
+
 }
 
 
@@ -1605,13 +1609,13 @@ LambdaB::hasGoodLzVertex(const vector<reco::TrackRef> theDaughterTracks,
 
   float chi = 0.;
   float ndf = 0.;
-  vector<RefCountedKinematicParticle> pionParticles;
-  pionParticles.push_back(pFactory.particle(pion1TT,PionMass_,chi,ndf,PionMassErr_));
-  pionParticles.push_back(pFactory.particle(pion2TT,PionMass_,chi,ndf,PionMassErr_));
+  vector<RefCountedKinematicParticle> lzdauParticles;
+  lzdauParticles.push_back(pFactory.particle(protonTT,ProtonMass_,chi,ndf,ProtonMassErr_));
+  lzdauParticles.push_back(pFactory.particle(  pionTT,  PionMass_,chi,ndf,  PionMassErr_));
 
   KinematicParticleVertexFitter fitter;
-  ksVertexFitTree = fitter.fit(pionParticles);
-  if (!ksVertexFitTree->isValid()) return false;
+  lzVertexFitTree = fitter.fit(lzdauParticles);
+  if (!lzVertexFitTree->isValid()) return false;
 
   return true;
 }
@@ -1622,13 +1626,13 @@ LambdaB::hasGoodLzVertexMKC(const vector<reco::TrackRef> theDaughterTracks,
 				     RefCountedKinematicTree &lzVertexFitTree)
 {
   if ( !hasGoodLzVertex(theDaughterTracks, lzVertexFitTree) ) return false;
-  KinematicParticleFitter csFitterKs;
-  KinematicConstraint * ks_c = new MassKinematicConstraint(KshortMass_,
-							   KshortMassErr_);
-  ksVertexFitTree = csFitterKs.fit(ks_c,ksVertexFitTree);
+  KinematicParticleFitter csFitterLz;
+  KinematicConstraint * lz_c = new MassKinematicConstraint(LzMass_,
+							   LzMassErr_);
+  lzVertexFitTree = csFitterLz.fit(lz_c,lzVertexFitTree);
 
-  delete ks_c;
-  if (!ksVertexFitTree->isValid()) return false;
+  delete lz_c;
+  if (!lzVertexFitTree->isValid()) return false;
   return true;
 }
 
