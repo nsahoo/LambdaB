@@ -12,9 +12,9 @@
 */
 //********************************************************************
 //*         Ntuplizer code for /\b -> /\(->p+pi) mu+ mu-             *
-//*                                                                  *
-//*   Original Author:  Niladribihari Sahoo,42 3-024,+41227662373,   *
-//*      date Created:  Tue Dec  8 23:43:26 CET 2015                 *
+//*----------------------------------------------------------------- *
+//*   original author:  Niladribihari Sahoo,42 3-024,+41227662373,   *
+//*      date created:  Tue Dec  8 23:43:26 CET 2015                 *
 //********************************************************************
 // $Id$
 //
@@ -235,7 +235,8 @@ class LambdaB : public edm::EDAnalyzer {
 
   bool hasGoodLbVertex(const reco::TransientTrack, const reco::TransientTrack,   // LambdaB vertex
                        const vector<reco::TrackRef>, double &, double &, double &,       /*   modified   */
-		       RefCountedKinematicTree &, RefCountedKinematicTree &);
+		       RefCountedKinematicTree & );
+
 
   bool hasGoodMuMuVertex (const reco::TransientTrack, const reco::TransientTrack,
                           reco::TransientTrack &, reco::TransientTrack &,
@@ -1043,7 +1044,7 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
   bool passed;
   double DCAmumBS, DCAmumBSErr, DCAmupBS, DCAmupBSErr;
   double mumutrk_R, mumutrk_Z, DCAmumu;
-  double trk_R, trk_Z, trk_DCA;
+  //double trk_R, trk_Z, trk_DCA;
   reco::TransientTrack refitMupTT, refitMumTT;
   double mu_mu_vtx_cl, mu_mu_pt, mu_mu_mass, mu_mu_mass_err;
   double MuMuLSBS, MuMuLSBSErr;
@@ -1051,7 +1052,7 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
   double trk_pt, lz_mass, lzbar_mass, lb_vtx_chisq, lb_vtx_cl, lb_mass, lbbar_mass;
   double DCALzTrkBS, DCALzTrkBSErr;
   vector<reco::TrackRef> LambdaDaughterTracks;
-  RefCountedKinematicTree vertexFitTree, barVertexFitTree, lbVertexFitTree;
+  RefCountedKinematicTree vertexFitTree, barVertexFitTree ;
 
   // --------------------                               
   // loop 1: mu-                                                                                                                          
@@ -1132,6 +1133,8 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 	LambdaDaughterTracks.push_back((dynamic_cast<const
 					reco::RecoChargedCandidate *>
 					(iLambda->daughter(1)))->track());
+
+	// check that the tracks of Lambda0(bar) are not *muons*
 	if ( matchMuonTracks(iEvent, LambdaDaughterTracks) ) continue;
 
 
@@ -1203,9 +1206,9 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 
 
 	  // fit /\b vertex  mu- mu+ /\(pi- p+)
-          if ( ! hasGoodLbVertex(muTrackmTT, muTrackpTT, LambdaDaughterTracks,
+          if ( ! hasGoodLbVertex(muTrackm, muTrackp, LambdaDaughterTracks,
                                  lb_vtx_chisq, lb_vtx_cl, lb_mass,
-                                 vertexFitTree, lbVertexFitTree) ) continue;
+                                 vertexFitTree ) ) continue;
 
           histos[h_lbvtxchisq]->Fill(lb_vtx_chisq);
           histos[h_lbvtxcl]->Fill(lb_vtx_cl);
@@ -1213,10 +1216,10 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
           if ( lb_vtx_cl < LbMinVtxCl_ || 
 	       lb_mass < LbMinMass_ || lb_mass > LbMaxMass_ ) continue;
 
-	  // fit /\bbar vertex mu- mu+ pi+ p-                                                                                                                
-          if ( ! hasGoodLbVertex(muTrackmTT, muTrackpTT, LambdaDaughterTracks,
+	  // fit /\bbar vertex mu- mu+ /\bar(pi+ p-)                                                                                                                
+          if ( ! hasGoodLbVertex(muTrackm, muTrackp, LambdaDaughterTracks,
                                  lb_vtx_chisq, lb_vtx_cl, lbbar_mass,
-                                 barVertexFitTree, lbVertexFitTree) ) continue;
+                                 barVertexFitTree ) ) continue;
 
           if ( lb_vtx_cl < LbMinVtxCl_ ||
 	       lbbar_mass < LbMinMass_ || lbbar_mass > LbMaxMass_ ) continue;
@@ -1247,8 +1250,9 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
           saveLbLsig(vertexFitTree);
           saveLbCtau(vertexFitTree);
 
-	  //   } // close track+ loop                                                                                                                                    
+	  //   } // close track+ loop                                                                                                                        
       //      } // close track- loop                                                                                                          
+      }  // close /\0 loop 
     } // close mu+ loop                                                                                                                                        
   } // close mu- loop                                                                                                                                         
 
@@ -1272,21 +1276,21 @@ LambdaB::calLS (double Vx, double Vy, double Vz,
 {
   *deltaD = sqrt((Vx-Wx) * (Vx-Wx) + (Vy-Wy) * (Vy-Wy) + (Vz-Wz) * (Vz-Wz));
   if (*deltaD > 0.)
-    *deltaDErr = sqrt((Vx-Wx) * (Vx-Wx) * VxErr2 +
-                      (Vy-Wy) * (Vy-Wy) * VyErr2 +
-                      (Vz-Wz) * (Vz-Wz) * VzErr2 +
+    *deltaDErr = sqrt(  (Vx-Wx) * (Vx-Wx) * VxErr2 +
+                        (Vy-Wy) * (Vy-Wy) * VyErr2 +
+                        (Vz-Wz) * (Vz-Wz) * VzErr2 +
 
-                      (Vx-Wx) * (Vy-Wy) * 2.*VxyCov +
-                      (Vx-Wx) * (Vz-Wz) * 2.*VxzCov +
-                      (Vy-Wy) * (Vz-Wz) * 2.*VyzCov +
+                        (Vx-Wx) * (Vy-Wy) * 2.*VxyCov +
+                        (Vx-Wx) * (Vz-Wz) * 2.*VxzCov +
+                        (Vy-Wy) * (Vz-Wz) * 2.*VyzCov +
 
-                      (Vx-Wx) * (Vx-Wx) * WxErr2 +
-                      (Vy-Wy) * (Vy-Wy) * WyErr2 +
-                      (Vz-Wz) * (Vz-Wz) * WzErr2 +
+                        (Vx-Wx) * (Vx-Wx) * WxErr2 +
+                        (Vy-Wy) * (Vy-Wy) * WyErr2 +
+                        (Vz-Wz) * (Vz-Wz) * WzErr2 +
 
-                      (Vx-Wx) * (Vy-Wy) * 2.*WxyCov +
-                      (Vx-Wx) * (Vz-Wz) * 2.*WxzCov +
-                      (Vy-Wy) * (Vz-Wz) * 2.*WyzCov) / *deltaD;
+                        (Vx-Wx) * (Vy-Wy) * 2.*WxyCov +
+                        (Vx-Wx) * (Vz-Wz) * 2.*WxzCov +
+                        (Vy-Wy) * (Vz-Wz) * 2.*WyzCov ) / *deltaD;
 
   else *deltaDErr = 0.;
 
@@ -1315,22 +1319,21 @@ LambdaB::calCosAlpha (double Vx, double Vy, double Vz,
 
 			  (Vx*Wnorm - VdotW*Wx) * (Vy*Wnorm - VdotW*Wy) * 2.*WxyCov +
 			  (Vx*Wnorm - VdotW*Wx) * (Vz*Wnorm - VdotW*Wz) * 2.*WxzCov +
-			  (Vy*Wnorm - VdotW*Wy) * (Vz*Wnorm - VdotW*Wz) * 2.*WyzCov) /
-		                        	 (Wnorm*Wnorm*Wnorm*Wnorm) +
+			  (Vy*Wnorm - VdotW*Wy) * (Vz*Wnorm - VdotW*Wz) * 2.*WyzCov) /(Wnorm*Wnorm*Wnorm*Wnorm) +
 
-			 ((Wx*Vnorm - VdotW*Vx) * (Wx*Vnorm - VdotW*Vx) * VxErr2 +
+              		  ((Wx*Vnorm - VdotW*Vx) * (Wx*Vnorm - VdotW*Vx) * VxErr2 +
 			  (Wy*Vnorm - VdotW*Vy) * (Wy*Vnorm - VdotW*Vy) * VyErr2 +
 			  (Wz*Vnorm - VdotW*Vz) * (Wz*Vnorm - VdotW*Vz) * VzErr2 +
 
 			  (Wx*Vnorm - VdotW*Vx) * (Wy*Vnorm - VdotW*Vy) * 2.*VxyCov +
 			  (Wx*Vnorm - VdotW*Vx) * (Wz*Vnorm - VdotW*Vz) * 2.*VxzCov +
-			  (Wy*Vnorm - VdotW*Vy) * (Wz*Vnorm - VdotW*Vz) * 2.*VyzCov) /
-			              (Vnorm*Vnorm*Vnorm*Vnorm) ) / (Wnorm*Vnorm);
+			  (Wy*Vnorm - VdotW*Vy) * (Wz*Vnorm - VdotW*Vz) * 2.*VyzCov) /(Vnorm*Vnorm*Vnorm*Vnorm) ) / (Wnorm*Vnorm);
 
   }  else {
     *cosAlpha = 0.;
     *cosAlphaErr = 0.;
   }
+
 }
 
 
@@ -1669,15 +1672,22 @@ LambdaB::hasGoodLzVertex(const reco::TransientTrack pionTT,
 */
 
 bool
-LambdaB::hasGoodLbVertex(const reco::TransientTrack mu1TT,
-			 const reco::TransientTrack mu2TT,
+LambdaB::hasGoodLbVertex(const reco::TransientTrack mu1Track,
+			 const reco::TransientTrack mu2Track,
 			 const vector<reco::TrackRef> LambdaDaughterTracks,
 			 double & lb_vtx_chisq, double & lb_vtx_cl,
 			 double & lb_mass,
-			 RefCountedKinematicTree & vertexFitTree,
-			 RefCountedKinematicTree & lbVertexFitTree)
+			 RefCountedKinematicTree & vertexFitTree )
+
 {
+
   KinematicParticleFactoryFromTransientTrack pFactory;
+
+  reco::TransientTrack mu1TT(mu1Track, &(*bFieldHandle_) );
+  reco::TransientTrack mu2TT(mu2Track, &(*bFieldHandle_) );
+  //reco::TransientTrack pionTT(pionTrack, &(*bFieldHandle_) );
+  //reco::TransientTrack protonTT(protonTrack, &(*bFieldHandle_) );
+
   float chi = 0.;
   float ndf = 0.;
 
