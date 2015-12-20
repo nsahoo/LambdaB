@@ -1049,7 +1049,8 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
   double mu_mu_vtx_cl, mu_mu_pt, mu_mu_mass, mu_mu_mass_err;
   double MuMuLSBS, MuMuLSBSErr;
   double MuMuCosAlphaBS, MuMuCosAlphaBSErr;
-  double trk_pt, lz_mass, lzbar_mass, lb_vtx_chisq, lb_vtx_cl, lb_mass, lbbar_mass;
+  double lz_mass, lzbar_mass; 
+  //double trk_pt, lz_mass, lzbar_mass, lb_vtx_chisq, lb_vtx_cl, lb_mass, lbbar_mass;
   double DCALzTrkBS, DCALzTrkBSErr;
   vector<reco::TrackRef> LambdaDaughterTracks;
   RefCountedKinematicTree vertexFitTree, barVertexFitTree ;
@@ -1134,12 +1135,16 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 					reco::RecoChargedCandidate *>
 					(iLambda->daughter(1)))->track());
 
+	//--------------------------------------------------------
 	// check that the tracks of Lambda0(bar) are not *muons*
+	//--------------------------------------------------------
 	if ( matchMuonTracks(iEvent, LambdaDaughterTracks) ) continue;
 
 
 
-      /*
+
+	/*
+
       // --------------------                                                                                                                          
       // loop 3: track-                                                                                                                       
       // --------------------                       
@@ -1205,6 +1210,7 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
       */
 
 
+	/*
 	  // fit /\b vertex  mu- mu+ /\(pi- p+)
           if ( ! hasGoodLbVertex(muTrackm, muTrackp, LambdaDaughterTracks,
                                  lb_vtx_chisq, lb_vtx_cl, lb_mass,
@@ -1223,6 +1229,7 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 
           if ( lb_vtx_cl < LbMinVtxCl_ ||
 	       lbbar_mass < LbMinMass_ || lbbar_mass > LbMaxMass_ ) continue;
+	*/
 
 	  // need to check with primaryVertex tracks ???                                                                                                           
 
@@ -1236,12 +1243,13 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
                             mu_mu_mass, mu_mu_mass_err);
 
           saveSoftMuonVariables(*iMuonM, *iMuonP, muTrackm, muTrackp);
-          trkpt->push_back(trk_pt);
+          //trkpt->push_back(trk_pt);
           trkdcabs->push_back(DCALzTrkBS);
           trkdcabserr->push_back(DCALzTrkBSErr);
           lzmass->push_back(lz_mass);
 	  lzbarmass->push_back(lzbar_mass);
-	  lbvtxcl->push_back(lb_vtx_cl);
+	  //lbvtxcl->push_back(lb_vtx_cl);
+	  
 
           saveLbToLzMuMu(vertexFitTree);
           saveLbVertex(vertexFitTree);
@@ -1671,9 +1679,15 @@ LambdaB::hasGoodLzVertex(const reco::TransientTrack pionTT,
 
 */
 
+
+ //=================================
+ //   ISSUE FOUND, NEEDS FIXING  ?? 
+ //=================================
+
+ /*
 bool
-LambdaB::hasGoodLbVertex(const reco::TransientTrack mu1Track,
-			 const reco::TransientTrack mu2Track,
+LambdaB::hasGoodLbVertex(const reco::TransientTrack mu1TT,
+			 const reco::TransientTrack mu2TT,
 			 const vector<reco::TrackRef> LambdaDaughterTracks,
 			 double & lb_vtx_chisq, double & lb_vtx_cl,
 			 double & lb_mass,
@@ -1683,8 +1697,8 @@ LambdaB::hasGoodLbVertex(const reco::TransientTrack mu1Track,
 
   KinematicParticleFactoryFromTransientTrack pFactory;
 
-  reco::TransientTrack mu1TT(mu1Track, &(*bFieldHandle_) );
-  reco::TransientTrack mu2TT(mu2Track, &(*bFieldHandle_) );
+  //reco::TransientTrack mu1TT(mu1Track, &(*bFieldHandle_) );
+  //reco::TransientTrack mu2TT(mu2Track, &(*bFieldHandle_) );
   //reco::TransientTrack pionTT(pionTrack, &(*bFieldHandle_) );
   //reco::TransientTrack protonTT(protonTrack, &(*bFieldHandle_) );
 
@@ -1724,6 +1738,9 @@ LambdaB::hasGoodLbVertex(const reco::TransientTrack mu1Track,
 
   return true;
 }
+
+ */
+
 
 void
 LambdaB::saveLbToLzMuMu(const RefCountedKinematicTree vertexFitTree){
@@ -1775,7 +1792,7 @@ LambdaB::saveLbToLzMuMu(const RefCountedKinematicTree vertexFitTree){
   prpy->push_back(pr_KP->currentState().globalMomentum().y());
   prpz->push_back(pr_KP->currentState().globalMomentum().z());
 
-  //  NEED TO BE UPDATED //
+  // --- NEED TO BE UPDATED --- //
 
 }
 
