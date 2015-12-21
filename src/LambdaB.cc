@@ -262,6 +262,7 @@ class LambdaB : public edm::EDAnalyzer {
   void saveLbCtau(RefCountedKinematicTree);
 
   void saveGenInfo(const edm::Event&);
+  void saveLzVariables(RefCountedKinematicTree, reco::VertexCompositeCandidate);
   void saveSoftMuonVariables(pat::Muon, pat::Muon, reco::TrackRef, reco::TrackRef);
   void saveDimuVariables(double, double, double, double, double, double,
                          double, double, double, double, double, double,
@@ -391,6 +392,15 @@ class LambdaB : public edm::EDAnalyzer {
   vector<double> *prpx, *prpy, *prpz;
   vector<int> *pichg;
   vector<double> *pipx, *pipy, *pipz;
+
+  /*
+  // kshort
+  vector<double> *pimpx, *pimpy, *pimpz, *pimd0, *pimd0err;
+  vector<double> *pippx, *pippy, *pippz, *pipd0, *pipd0err;
+  vector<double> *kspx, *kspy, *kspz;
+  vector<double> *ksvtxx, *ksvtxy, *ksvtxz, *ksvtxcl, *kslsbs, *kslsbserr;
+  */
+
 
   //-----------
   // Lambda0, anti-Lambda0 
@@ -1178,13 +1188,14 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
                             MuMuCosAlphaBS, MuMuCosAlphaBSErr,
                             mu_mu_mass, mu_mu_mass_err);
 
+	  ///saveLzVariables(LzvertexFitTree, *iLambda);
           saveSoftMuonVariables(*iMuonM, *iMuonP, muTrackm, muTrackp);
-          //trkpt->push_back(trk_pt);
+     
           trkdcabs->push_back(DCALzTrkBS);
           trkdcabserr->push_back(DCALzTrkBSErr);
           lzmass->push_back(lz_mass);
 	  lzbarmass->push_back(lzbar_mass);
-	  //lbvtxcl->push_back(lb_vtx_cl);
+	  lbvtxcl->push_back(lb_vtx_cl);
 	  
 
           saveLbToLzMuMu(vertexFitTree);
@@ -1194,9 +1205,9 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
           saveLbLsig(vertexFitTree);
           saveLbCtau(vertexFitTree);
 
-	  //   } // close track+ loop                                                                                                                        
-      //      } // close track- loop                                                                                                          
-      }  // close /\0 loop 
+
+
+      }// close Lambda0 loop 
     } // close mu+ loop                                                                                                                                        
   } // close mu- loop                                                                                                                                         
 
@@ -1647,6 +1658,7 @@ LambdaB::hasGoodLbVertex(const reco::TrackRef mu1Track,
 
 
 
+// need further fixing ??
 
 void
 LambdaB::saveLbToLzMuMu(const RefCountedKinematicTree vertexFitTree){
@@ -1698,7 +1710,7 @@ LambdaB::saveLbToLzMuMu(const RefCountedKinematicTree vertexFitTree){
   prpy->push_back(pr_KP->currentState().globalMomentum().y());
   prpz->push_back(pr_KP->currentState().globalMomentum().z());
 
-  // --- NEED TO BE UPDATED --- //
+
 
 }
 
@@ -2022,6 +2034,88 @@ LambdaB::saveGenInfo(const edm::Event& iEvent){
   }
 }
 
+
+// added on dec 21, 2015
+/*
+void 
+LambdaB::saveLzVariables(RefCountedKinematicTree LzvertexFitTree,
+			     reco::VertexCompositeCandidate iLambda)
+{
+
+  LzvertexFitTree->movePointerToTheTop();
+  RefCountedKinematicVertex lz_vertex = LzvertexFitTree->currentDecayVertex();
+
+  lzvtxcl->push_back( ChiSquaredProbability(
+					    (double)(lz_vertex->chiSquared()),
+					    (double)(lz_vertex->degreesOfFreedom())) );
+
+  lzvtxx->push_back(ks_vertex->position().x());
+  lzvtxy->push_back(ks_vertex->position().y());
+  lzvtxz->push_back(ks_vertex->position().z());
+
+  // Lambda0 vertex distance to the beam spot
+  double LzLSBS, LzLSBSErr;
+
+  calLS (lz_vertex->position().x(),lz_vertex->position().y(),0.0,
+	 beamSpot_.position().x(),beamSpot_.position().y(),0.0,
+	 lz_vertex->error().cxx(),lz_vertex->error().cyy(),0.0,
+	 lz_vertex->error().matrix()(0,1),0.0,0.0,
+	 beamSpot_.covariance()(0,0),beamSpot_.covariance()(1,1),0.0,
+	 beamSpot_.covariance()(0,1),0.0,0.0,
+	 &LzLSBS,&LzLSBSErr);
+
+  lzlsbs->push_back(LzLSBS);
+  lzlsbserr->push_back(LzLSBSErr);
+
+  LzvertexFitTree->movePointerToTheFirstChild(); // Lambda0 proton
+  RefCountedKinematicParticle LzPr = LzvertexFitTree->currentParticle();
+
+  LzvertexFitTree->movePointerToTheNextChild(); // Lambda0 pion
+  RefCountedKinematicParticle LzPi = LzvertexFitTree->currentParticle();
+
+
+  KinematicParameters LzPrKP = LzPr->currentState().kinematicParameters();
+  KinematicParameters LzPiKP = LzPi->currentState().kinematicParameters();
+  KinematicParameters LzPrKP;
+  KinematicParameters LzPiKP;
+
+  if ( LzPr->currentState().particleCharge() > 0 ) ksPipKP = ksPi1KP;
+  if ( ksPi1->currentState().particleCharge() < 0 ) ksPimKP = ksPi1KP;
+  if ( ksPi2->currentState().particleCharge() > 0 ) ksPipKP = ksPi2KP;
+  if ( ksPi2->currentState().particleCharge() < 0 ) ksPimKP = ksPi2KP;
+
+  pippx->push_back(ksPipKP.momentum().x());
+  pippy->push_back(ksPipKP.momentum().y());
+  pippz->push_back(ksPipKP.momentum().z());
+
+  pimpx->push_back(ksPimKP.momentum().x());
+  pimpy->push_back(ksPimKP.momentum().y());
+  pimpz->push_back(ksPimKP.momentum().z());
+
+  if ( iKshort.daughter(0)->charge() < 0) {
+    pimd0->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
+		      (iKshort.daughter(0)))->track()->d0());
+    pimd0err->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
+			 (iKshort.daughter(0)))->track()->d0Error());
+    pipd0->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
+		      (iKshort.daughter(1)))->track()->d0());
+    pipd0err->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
+			 (iKshort.daughter(1)))->track()->d0Error());
+
+  } else {
+    pimd0->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
+		      (iKshort.daughter(1)))->track()->d0());
+    pimd0err->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
+			 (iKshort.daughter(1)))->track()->d0Error());
+
+    pipd0->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
+		      (iKshort.daughter(0)))->track()->d0());
+    pipd0err->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
+			 (iKshort.daughter(0)))->track()->d0Error());
+  }
+
+}
+*/
 
 void
 LambdaB::saveSoftMuonVariables(pat::Muon iMuonM, pat::Muon iMuonP,
