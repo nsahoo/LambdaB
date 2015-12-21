@@ -225,7 +225,6 @@ class LambdaB : public edm::EDAnalyzer {
   bool hasGoodLzVertexMKC(const vector<reco::TrackRef>,
 			      RefCountedKinematicTree &);
 
-  //bool hasGoodLzVertex(const reco::TransientTrack, const reco::TransientTrack, double &);  // Lambda0 vertex
 
   bool hasGoodMuonDcaBs (const reco::TransientTrack, double &, double &);
   bool hasGoodTrackDcaBs (const reco::TransientTrack, double &, double &);
@@ -236,7 +235,7 @@ class LambdaB : public edm::EDAnalyzer {
 
 
   bool hasGoodLbVertex(const reco::TrackRef, const reco::TrackRef,   // LambdaB vertex
-                       const vector<reco::TrackRef>, double &, double &, double &,       /*   modified   */
+                       const vector<reco::TrackRef>, double &, double &, double &,      
 		       RefCountedKinematicTree & , RefCountedKinematicTree & );
 
 
@@ -1584,42 +1583,6 @@ LambdaB::hasGoodLzVertexMKC(const vector<reco::TrackRef> theDaughterTracks,
   return true;
 }
 
-
-/*
-bool
-LambdaB::hasGoodLzVertex(const reco::TransientTrack pionTT,
-			 const reco::TransientTrack protonTT,
-			 double & lz_mass)
-{
-  KinematicParticleFactoryFromTransientTrack pFactory;
-
-  float chi = 0.;
-  float ndf = 0.;
-
-  vector<RefCountedKinematicParticle> LzParticles;
-  LzParticles.push_back(pFactory.particle(pionTT,PionMass_,chi,ndf,PionMassErr_));
-  LzParticles.push_back(pFactory.particle(protonTT,ProtonMass_,chi,ndf,ProtonMassErr_));
-
-  KinematicParticleVertexFitter fitter;
-  RefCountedKinematicTree LzVertexFitTree = fitter.fit(LzParticles);
-  if ( ! LzVertexFitTree->isValid() ) return false ;
-
-  LzVertexFitTree->movePointerToTheTop();
-  RefCountedKinematicParticle lz_KP = LzVertexFitTree->currentParticle();
-  RefCountedKinematicVertex lz_KV   = LzVertexFitTree->currentDecayVertex();
-  if ( !lz_KV->vertexIsValid() ) return false;
-
-  lz_mass = lz_KP->currentState().mass();
-
-  return true;
-}
-
-*/
-
-
- //=================================
- //   ISSUE FOUND, NEEDS FIXING  ?? 
- //=================================
 
 
 bool
