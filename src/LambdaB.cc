@@ -375,36 +375,25 @@ class LambdaB : public edm::EDAnalyzer {
   vector<string> *mumtriglastfilter, *muptriglastfilter;
   vector<double> *mumpt, *muppt, *mumeta, *mupeta;
 
-  //---------------
-  // pion track                                                                                                                                                    
-  //---------------
+
+
   vector<int> *trkchg; // +1 for pi+, -1 for pi-                                                                                                                
   vector<double> *trkpx, *trkpy, *trkpz, *trkpt;
   vector<double> *trkdcabs, *trkdcabserr;
 
-  vector<double> *lzpx, *lzpy, *lzpz;
-  vector<double> *lzvtxx, *lzvtxy, *lzvtxz;
 
   //--------------------
-  // proton, pion track 
+  // Lambda0  
   //--------------------                                                                                                                                       
   vector<int> *prchg;
-  vector<double> *prpx, *prpy, *prpz;
+  vector<double> *prpx, *prpy, *prpz ;
+  vector<double>  *prd0, *prd0err ;
   vector<int> *pichg;
-  vector<double> *pipx, *pipy, *pipz;
+  vector<double> *pipx, *pipy, *pipz ;
+  vector<double> *pid0, *pid0err ;
+  vector<double> *lzpx, *lzpy, *lzpz;
+  vector<double> *lzvtxx, *lzvtxy, *lzvtxz, *lzvtxcl, *lzlsbs, *lzlsbserr;
 
-  /*
-  // kshort
-  vector<double> *pimpx, *pimpy, *pimpz, *pimd0, *pimd0err;
-  vector<double> *pippx, *pippy, *pippz, *pipd0, *pipd0err;
-  vector<double> *kspx, *kspy, *kspz;
-  vector<double> *ksvtxx, *ksvtxy, *ksvtxz, *ksvtxcl, *kslsbs, *kslsbserr;
-  */
-
-
-  //-----------
-  // Lambda0, anti-Lambda0 
-  //-----------
   vector<double> *lzmass, *lzmasserr, *lzbarmass, *lzbarmasserr;
 
   //-----------
@@ -541,13 +530,15 @@ LambdaB::LambdaB(const edm::ParameterSet& iConfig):
   trkchg(0), trkpx(0), trkpy(0), trkpz(0), trkpt(0),
   trkdcabs(0), trkdcabserr(0),
 
-  lzpx(0), lzpy(0), lzpz(0),
-  lzvtxx(0), lzvtxy(0), lzvtxz(0),
-
   prchg(0),
   prpx(0), prpy(0), prpz(0),
+  prd0(0), prd0err(0),
   pichg(0),
   pipx(0), pipy(0), pipz(0),
+  pid0(0), pid0err(0),
+
+  lzpx(0), lzpy(0), lzpz(0),
+  lzvtxx(0), lzvtxy(0), lzvtxz(0),
 
   lzmass(0), lzmasserr(0), lzbarmass(0), lzbarmasserr(0),
 
@@ -721,20 +712,25 @@ LambdaB::beginJob()
   tree_->Branch("trkpt", &trkpt);
   tree_->Branch("trkdcabs", &trkdcabs);
   tree_->Branch("trkdcabserr", &trkdcabserr);
+  tree_->Branch("prchg", &prchg);
+  tree_->Branch("prpx", &prpx);
+  tree_->Branch("prpy", &prpy);
+  tree_->Branch("prpz", &prpz);
+  tree_->Branch("prd0", &prd0);
+  tree_->Branch("prd0err", &prd0err);
+  tree_->Branch("pichg", &pichg);
+  tree_->Branch("pipx", &pipx);
+  tree_->Branch("pipy", &pipy);
+  tree_->Branch("pipz", &pipz);
+  tree_->Branch("pid0", &pid0);
+  tree_->Branch("pid0err", &pid0err);
+
   tree_->Branch("lzpx", &lzpx);
   tree_->Branch("lzpy", &lzpy);
   tree_->Branch("lzpz", &lzpz);
   tree_->Branch("lzvtxx", &lzvtxx);
   tree_->Branch("lzvtxy", &lzvtxy);
   tree_->Branch("lzvtxz", &lzvtxz);
-  tree_->Branch("prchg", &prchg);
-  tree_->Branch("prpx", &prpx);
-  tree_->Branch("prpy", &prpy);
-  tree_->Branch("prpz", &prpz);
-  tree_->Branch("pichg", &pichg);
-  tree_->Branch("pipx", &pipx);
-  tree_->Branch("pipy", &pipy);
-  tree_->Branch("pipz", &pipz);
   tree_->Branch("lzmass", &lzmass);
   tree_->Branch("lzmasserr", &lzmasserr);
   tree_->Branch("lzbarmass", &lzbarmass);
@@ -896,13 +892,15 @@ LambdaB::clearVariables(){
   trkchg->clear(); trkpx->clear(); trkpy->clear(); trkpz->clear(); trkpt->clear();
   trkdcabs->clear(); trkdcabserr->clear();
 
-  lzpx->clear(); lzpy->clear(); lzpz->clear();
-  lzvtxx->clear(); lzvtxy->clear(); lzvtxz->clear();
-
   prchg->clear();
   prpx->clear(); prpy->clear(); prpz->clear();
+  prd0->clear(); prd0err->clear();
   pichg->clear();
   pipx->clear(); pipy->clear(); pipz->clear();
+  pid0->clear(); pid0err->clear();
+
+  lzpx->clear(); lzpy->clear(); lzpz->clear();
+  lzvtxx->clear(); lzvtxy->clear(); lzvtxz->clear();
 
   lzmass->clear(); lzmasserr->clear();
   lzbarmass->clear(); lzbarmasserr->clear();
@@ -1428,10 +1426,8 @@ LambdaB::hasGoodMuMuVertex (const reco::TransientTrack muTrackpTT,
   vector<RefCountedKinematicParticle> muonParticles;
   double chi = 0.;
   double ndf = 0.;
-  muonParticles.push_back(partFactory.particle(muTrackmTT,
-                                               MuonMass_,chi,ndf,MuonMassErr_));
-  muonParticles.push_back(partFactory.particle(muTrackpTT,
-                                               MuonMass_,chi,ndf,MuonMassErr_));
+  muonParticles.push_back(partFactory.particle(muTrackmTT, MuonMass_,chi,ndf,MuonMassErr_));
+  muonParticles.push_back(partFactory.particle(muTrackpTT, MuonMass_,chi,ndf,MuonMassErr_));
 
   RefCountedKinematicTree mumuVertexFitTree = PartVtxFitter.fit(muonParticles);
 
@@ -1657,8 +1653,9 @@ LambdaB::hasGoodLbVertex(const reco::TrackRef mu1Track,
 }
 
 
-
-// need further fixing ??
+//---------------------------------
+//   need further fixing ??
+//---------------------------------
 
 void
 LambdaB::saveLbToLzMuMu(const RefCountedKinematicTree vertexFitTree){
@@ -2036,7 +2033,7 @@ LambdaB::saveGenInfo(const edm::Event& iEvent){
 
 
 // added on dec 21, 2015
-/*
+
 void 
 LambdaB::saveLzVariables(RefCountedKinematicTree LzvertexFitTree,
 			     reco::VertexCompositeCandidate iLambda)
@@ -2046,12 +2043,12 @@ LambdaB::saveLzVariables(RefCountedKinematicTree LzvertexFitTree,
   RefCountedKinematicVertex lz_vertex = LzvertexFitTree->currentDecayVertex();
 
   lzvtxcl->push_back( ChiSquaredProbability(
-					    (double)(lz_vertex->chiSquared()),
-					    (double)(lz_vertex->degreesOfFreedom())) );
+    (double)(lz_vertex->chiSquared()),
+    (double)(lz_vertex->degreesOfFreedom())) );
 
-  lzvtxx->push_back(ks_vertex->position().x());
-  lzvtxy->push_back(ks_vertex->position().y());
-  lzvtxz->push_back(ks_vertex->position().z());
+  lzvtxx->push_back(lz_vertex->position().x());
+  lzvtxy->push_back(lz_vertex->position().y());
+  lzvtxz->push_back(lz_vertex->position().z());
 
   // Lambda0 vertex distance to the beam spot
   double LzLSBS, LzLSBSErr;
@@ -2068,21 +2065,26 @@ LambdaB::saveLzVariables(RefCountedKinematicTree LzvertexFitTree,
   lzlsbserr->push_back(LzLSBSErr);
 
   LzvertexFitTree->movePointerToTheFirstChild(); // Lambda0 proton
-  RefCountedKinematicParticle LzPr = LzvertexFitTree->currentParticle();
+  RefCountedKinematicParticle LzPr1 = LzvertexFitTree->currentParticle();
 
   LzvertexFitTree->movePointerToTheNextChild(); // Lambda0 pion
-  RefCountedKinematicParticle LzPi = LzvertexFitTree->currentParticle();
+  RefCountedKinematicParticle LzPi2 = LzvertexFitTree->currentParticle();
 
 
-  KinematicParameters LzPrKP = LzPr->currentState().kinematicParameters();
-  KinematicParameters LzPiKP = LzPi->currentState().kinematicParameters();
-  KinematicParameters LzPrKP;
-  KinematicParameters LzPiKP;
+  KinematicParameters LzPr1KP = LzPr1->currentState().kinematicParameters();
+  KinematicParameters LzPi2KP = LzPi2->currentState().kinematicParameters();
+  KinematicParameters LzPrpKP;
+  KinematicParameters LzPrmKP;
+  KinematicParameters LzPipKP;
+  KinematicParameters LzPimKP;
 
-  if ( LzPr->currentState().particleCharge() > 0 ) ksPipKP = ksPi1KP;
-  if ( ksPi1->currentState().particleCharge() < 0 ) ksPimKP = ksPi1KP;
-  if ( ksPi2->currentState().particleCharge() > 0 ) ksPipKP = ksPi2KP;
-  if ( ksPi2->currentState().particleCharge() < 0 ) ksPimKP = ksPi2KP;
+
+  // xcheck again !!
+  if ( LzPr1->currentState().particleCharge() > 0 ) LzPrpKP = LzPr1KP;
+  if ( LzPr1->currentState().particleCharge() < 0 ) LzPrmKP = LzPr1KP;
+  if ( LzPi2->currentState().particleCharge() > 0 ) LzPipKP = LzPi2KP;
+  if ( LzPi2->currentState().particleCharge() < 0 ) LzPimKP = LzPi2KP;
+
 
   pippx->push_back(ksPipKP.momentum().x());
   pippy->push_back(ksPipKP.momentum().y());
@@ -2091,6 +2093,8 @@ LambdaB::saveLzVariables(RefCountedKinematicTree LzvertexFitTree,
   pimpx->push_back(ksPimKP.momentum().x());
   pimpy->push_back(ksPimKP.momentum().y());
   pimpz->push_back(ksPimKP.momentum().z());
+
+
 
   if ( iKshort.daughter(0)->charge() < 0) {
     pimd0->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
@@ -2115,7 +2119,7 @@ LambdaB::saveLzVariables(RefCountedKinematicTree LzvertexFitTree,
   }
 
 }
-*/
+
 
 void
 LambdaB::saveSoftMuonVariables(pat::Muon iMuonM, pat::Muon iMuonP,
