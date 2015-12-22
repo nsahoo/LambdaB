@@ -77,9 +77,7 @@
 #include <TLorentzVector.h>
 #include <TH1.h>
 
-
 using namespace std;
-
 
 const int MUONMINUS_PDG_ID = 13;
 const int PIONPLUS_PDG_ID = 211;
@@ -219,11 +217,9 @@ class LambdaB : public edm::EDAnalyzer {
                                 const reco::TransientTrack,
                                 double&, double &, double &);
 
-  bool hasGoodLzVertex(const edm::Event&, const reco::TrackRef, 
-		       const vector<reco::TrackRef>, RefCountedKinematicTree &);
+  bool hasGoodLzVertex(const vector<reco::TrackRef>, RefCountedKinematicTree &);
 
-  bool hasGoodLzVertexMKC(const vector<reco::TrackRef>,
-			      RefCountedKinematicTree &);
+  bool hasGoodLzVertexMKC(const vector<reco::TrackRef>, RefCountedKinematicTree &);
 
 
   bool hasGoodMuonDcaBs (const reco::TransientTrack, double &, double &);
@@ -234,7 +230,7 @@ class LambdaB : public edm::EDAnalyzer {
   bool hasGoodLbMass(RefCountedKinematicTree, double &);  // LambdaB mass
 
 
-  bool hasGoodLbVertex(const reco::TrackRef, const reco::TrackRef,   // LambdaB vertex
+  bool hasGoodLbVertex(const reco::TrackRef, const reco::TrackRef,                       // LambdaB vertex
                        const vector<reco::TrackRef>, double &, double &, double &,      
 		       RefCountedKinematicTree & , RefCountedKinematicTree & );
 
@@ -375,7 +371,6 @@ class LambdaB : public edm::EDAnalyzer {
   vector<double> *mumdxyvtx, *mupdxyvtx, *mumdzvtx, *mupdzvtx;
   vector<string> *mumtriglastfilter, *muptriglastfilter;
   vector<double> *mumpt, *muppt, *mumeta, *mupeta;
-
 
 
   vector<int> *trkchg; // +1 for pi+, -1 for pi-                                                                                                                
@@ -771,9 +766,9 @@ LambdaB::beginJob()
     tree_->Branch("genlzpx",      &genlzpx   , "genlzpx/D"  );
     tree_->Branch("genlzpy",      &genlzpy   , "genlzpy/D"  );
     tree_->Branch("genlzpz",      &genlzpz   , "genlzpz/D"  );
-    tree_->Branch("genlzvtxx",     &genlzvtxx    , "genlzvtxx/D"   );
-    tree_->Branch("genlzvtxy",     &genlzvtxy    , "genlzvtxy/D"   );
-    tree_->Branch("genlzvtxz",     &genlzvtxz    , "genlzvtxz/D"   );
+    tree_->Branch("genlzvtxx",    &genlzvtxx    , "genlzvtxx/D"   );
+    tree_->Branch("genlzvtxy",    &genlzvtxy    , "genlzvtxy/D"   );
+    tree_->Branch("genlzvtxz",    &genlzvtxz    , "genlzvtxz/D"   );
     tree_->Branch("genprchg",    &genprchg   , "genprchg/I"   );
     tree_->Branch("genprpx",     &genprpx    , "genprpx/D"   );
     tree_->Branch("genprpy",     &genprpy    , "genprpy/D"   );
@@ -1158,7 +1153,7 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 
 
 	  // fit /\b vertex  mu- mu+ /\(pi- p+)
-          if ( ! hasGoodLbVertex(muTrackm, muTrackp, LambdaDaughterTracks,
+	if ( ! hasGoodLbVertex(muTrackm, muTrackp, LambdaDaughterTracks,
                                  lb_vtx_chisq, lb_vtx_cl, lb_mass,
                                  vertexFitTree, LzvertexFitTree ) ) continue;
 
@@ -1549,8 +1544,9 @@ LambdaB::matchMuonTracks (const edm::Event& iEvent,
   return false;
 }
 
-
+//-------------------------
 // added on dec 22, 2015
+//-------------------------
 bool
 LambdaB::matchLzTrack (const edm::Event& iEvent,
 		       const reco::TrackRef theTrackRef, double & dau1_pt, double & dau2_pt)
@@ -1591,12 +1587,14 @@ LambdaB::matchLzTrack (const edm::Event& iEvent,
 // added on 13 dec 2015 //
 //------------------------
 bool
-LambdaB::hasGoodLzVertex(const edm::Event& iEvent, const reco::TrackRef theTrackRef, 
-			 const vector<reco::TrackRef> theDaughterTracks, RefCountedKinematicTree &lzVertexFitTree)
+LambdaB::hasGoodLzVertex(const vector<reco::TrackRef> theDaughterTracks, 
+			 RefCountedKinematicTree &lzVertexFitTree)
 {
 
-  double dau1pt, dau2pt;
-  if (! matchLzTrack(iEvent, theTrackRef, dau1pt, dau2pt) ) return false;
+  //  reco::TrackRef theTrackRef ;
+  // double dau1pt, dau2pt;
+
+  //if (! matchLzTrack(iEvent, theTrackRef, dau1pt, dau2pt) ) return false;
 
   reco::TransientTrack dau1TT(theDaughterTracks[0], &(*bFieldHandle_) );
   reco::TransientTrack dau2TT(theDaughterTracks[1], &(*bFieldHandle_) );
@@ -1608,13 +1606,15 @@ LambdaB::hasGoodLzVertex(const edm::Event& iEvent, const reco::TrackRef theTrack
   vector<RefCountedKinematicParticle> lzdauParticles;
 
   // assign proton mass to the track w/ higher momentum
-  if ( dau1pt > dau2pt ) {
+
+
+  //  if ( dau1pt > dau2pt ) {
     lzdauParticles.push_back(pFactory.particle(dau1TT,ProtonMass_,chi,ndf,ProtonMassErr_));
     lzdauParticles.push_back(pFactory.particle(dau2TT,  PionMass_,chi,ndf,  PionMassErr_));
-  } else{
-    lzdauParticles.push_back(pFactory.particle(dau2TT,ProtonMass_,chi,ndf,ProtonMassErr_));
-    lzdauParticles.push_back(pFactory.particle(dau1TT,  PionMass_,chi,ndf,  PionMassErr_));
-  }
+    //  } else{
+    //lzdauParticles.push_back(pFactory.particle(dau2TT,ProtonMass_,chi,ndf,ProtonMassErr_));
+    //lzdauParticles.push_back(pFactory.particle(dau1TT,  PionMass_,chi,ndf,  PionMassErr_));
+    //  }
 
 
   KinematicParticleVertexFitter fitter;
@@ -1626,8 +1626,8 @@ LambdaB::hasGoodLzVertex(const edm::Event& iEvent, const reco::TrackRef theTrack
 
 
 bool
-LambdaB::hasGoodLzVertexMKC(const vector<reco::TrackRef> theDaughterTracks,
-				     RefCountedKinematicTree &lzVertexFitTree)
+LambdaB::hasGoodLzVertexMKC(const vector<reco::TrackRef> theDaughterTracks, 
+			    RefCountedKinematicTree &lzVertexFitTree)
 {
   if ( !hasGoodLzVertex(theDaughterTracks, lzVertexFitTree) ) return false;
   KinematicParticleFitter csFitterLz;
