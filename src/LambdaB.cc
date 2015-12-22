@@ -219,8 +219,8 @@ class LambdaB : public edm::EDAnalyzer {
                                 const reco::TransientTrack,
                                 double&, double &, double &);
 
-  bool hasGoodLzVertex(const vector<reco::TrackRef>,
-			   RefCountedKinematicTree &);
+  bool hasGoodLzVertex(const edm::Event&, const reco::TrackRef, 
+		       const vector<reco::TrackRef>, RefCountedKinematicTree &);
 
   bool hasGoodLzVertexMKC(const vector<reco::TrackRef>,
 			      RefCountedKinematicTree &);
@@ -1591,9 +1591,13 @@ LambdaB::matchLzTrack (const edm::Event& iEvent,
 // added on 13 dec 2015 //
 //------------------------
 bool
-LambdaB::hasGoodLzVertex(const vector<reco::TrackRef> theDaughterTracks,
-				  RefCountedKinematicTree &lzVertexFitTree)
+LambdaB::hasGoodLzVertex(const edm::Event& iEvent, const reco::TrackRef theTrackRef, 
+			 const vector<reco::TrackRef> theDaughterTracks, RefCountedKinematicTree &lzVertexFitTree)
 {
+
+  double dau1pt, dau2pt;
+  if (! matchLzTrack(iEvent, theTrackRef, dau1pt, dau2pt) ) return false;
+
   reco::TransientTrack dau1TT(theDaughterTracks[0], &(*bFieldHandle_) );
   reco::TransientTrack dau2TT(theDaughterTracks[1], &(*bFieldHandle_) );
 
@@ -1604,13 +1608,14 @@ LambdaB::hasGoodLzVertex(const vector<reco::TrackRef> theDaughterTracks,
   vector<RefCountedKinematicParticle> lzdauParticles;
 
   // assign proton mass to the track w/ higher momentum
-  if ( dau1TT.track.momentum() > dau2TT.track.momentum() ) {
+  if ( dau1pt > dau2pt ) {
     lzdauParticles.push_back(pFactory.particle(dau1TT,ProtonMass_,chi,ndf,ProtonMassErr_));
     lzdauParticles.push_back(pFactory.particle(dau2TT,  PionMass_,chi,ndf,  PionMassErr_));
   } else{
     lzdauParticles.push_back(pFactory.particle(dau2TT,ProtonMass_,chi,ndf,ProtonMassErr_));
     lzdauParticles.push_back(pFactory.particle(dau1TT,  PionMass_,chi,ndf,  PionMassErr_));
   }
+
 
   KinematicParticleVertexFitter fitter;
   lzVertexFitTree = fitter.fit(lzdauParticles);
