@@ -252,6 +252,7 @@ class LambdaB : public edm::EDAnalyzer {
 
   bool matchMuonTrack (const edm::Event&, const reco::TrackRef);
   bool matchMuonTracks (const edm::Event&, const vector<reco::TrackRef>);
+  bool matchLzTrack (const edm::Event&, const reco::TrackRef, double &, double &);     // added on dec 22 , 2015
   bool matchPrimaryVertexTracks ();
 
   void saveLbToLzMuMu(const RefCountedKinematicTree);
@@ -1549,6 +1550,43 @@ LambdaB::matchMuonTracks (const edm::Event& iEvent,
 }
 
 
+// added on dec 22, 2015
+bool
+LambdaB::matchLzTrack (const edm::Event& iEvent,
+		       const reco::TrackRef theTrackRef, double & dau1_pt, double & dau2_pt)
+{
+  if ( theTrackRef.isNull() ) return false;
+
+  edm::Handle<reco::VertexCompositeCandidateCollection> theLambdas;
+  iEvent.getByLabel(LambdaLabel_, theLambdas);
+
+  reco::TrackRef theDau1TrackRef;
+  reco::TrackRef theDau2TrackRef;
+
+  for ( reco::VertexCompositeCandidateCollection::const_iterator iLambda
+	  = theLambdas->begin(); iLambda != theLambdas->end(); ++iLambda) {
+
+    theDau1TrackRef = (*(dynamic_cast<const reco::RecoChargedCandidate *>
+			 (iLambda->daughter(0)))).track();
+
+    dau1_pt = theDau1TrackRef->pt();
+
+    if ( ! theDau1TrackRef.isNull() && theDau1TrackRef == theTrackRef) return true;
+
+
+    theDau2TrackRef = (*(dynamic_cast<const reco::RecoChargedCandidate *>
+			 (iLambda->daughter(1)))).track();
+
+    dau2_pt = theDau2TrackRef->pt();
+
+    if ( ! theDau2TrackRef.isNull() && theDau2TrackRef == theTrackRef) return true;
+  }
+
+  return false;
+
+}
+
+
 //------------------------
 // added on 13 dec 2015 //
 //------------------------
@@ -1556,16 +1594,23 @@ bool
 LambdaB::hasGoodLzVertex(const vector<reco::TrackRef> theDaughterTracks,
 				  RefCountedKinematicTree &lzVertexFitTree)
 {
-  reco::TransientTrack protonTT(theDaughterTracks[0], &(*bFieldHandle_) );
-  reco::TransientTrack   pionTT(theDaughterTracks[1], &(*bFieldHandle_) );
+  reco::TransientTrack dau1TT(theDaughterTracks[0], &(*bFieldHandle_) );
+  reco::TransientTrack dau2TT(theDaughterTracks[1], &(*bFieldHandle_) );
 
   KinematicParticleFactoryFromTransientTrack pFactory;
 
   float chi = 0.;
   float ndf = 0.;
   vector<RefCountedKinematicParticle> lzdauParticles;
-  lzdauParticles.push_back(pFactory.particle(protonTT,ProtonMass_,chi,ndf,ProtonMassErr_));
-  lzdauParticles.push_back(pFactory.particle(  pionTT,  PionMass_,chi,ndf,  PionMassErr_));
+
+  // assign proton mass to the track w/ higher momentum
+  if ( dau1TT.track.momentum() > dau2TT.track.momentum() ) {
+    lzdauParticles.push_back(pFactory.particle(dau1TT,ProtonMass_,chi,ndf,ProtonMassErr_));
+    lzdauParticles.push_back(pFactory.particle(dau2TT,  PionMass_,chi,ndf,  PionMassErr_));
+  } else{
+    lzdauParticles.push_back(pFactory.particle(dau2TT,ProtonMass_,chi,ndf,ProtonMassErr_));
+    lzdauParticles.push_back(pFactory.particle(dau1TT,  PionMass_,chi,ndf,  PionMassErr_));
+  }
 
   KinematicParticleVertexFitter fitter;
   lzVertexFitTree = fitter.fit(lzdauParticles);
