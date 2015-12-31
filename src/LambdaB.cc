@@ -217,9 +217,9 @@ class LambdaB : public edm::EDAnalyzer {
                                 const reco::TransientTrack,
                                 double&, double &, double &);
 
-  bool hasGoodLzVertex(const vector<reco::TrackRef>, RefCountedKinematicTree &);
+  bool hasGoodLzVertex(const edm::Event&, const vector<reco::TrackRef>, RefCountedKinematicTree &);
 
-  bool hasGoodLzVertexMKC(const vector<reco::TrackRef>, RefCountedKinematicTree &);
+  bool hasGoodLzVertexMKC(const edm::Event&, const vector<reco::TrackRef>, RefCountedKinematicTree &);
 
 
   bool hasGoodMuonDcaBs (const reco::TransientTrack, double &, double &);
@@ -230,7 +230,7 @@ class LambdaB : public edm::EDAnalyzer {
   bool hasGoodLbMass(RefCountedKinematicTree, double &);  // LambdaB mass
 
 
-  bool hasGoodLbVertex(const reco::TrackRef, const reco::TrackRef,                       // LambdaB vertex
+  bool hasGoodLbVertex(const edm::Event&, const reco::TrackRef, const reco::TrackRef,                       // LambdaB vertex
                        const vector<reco::TrackRef>, double &, double &, double &,      
 		       RefCountedKinematicTree & , RefCountedKinematicTree & );
 
@@ -248,7 +248,8 @@ class LambdaB : public edm::EDAnalyzer {
 
   bool matchMuonTrack (const edm::Event&, const reco::TrackRef);
   bool matchMuonTracks (const edm::Event&, const vector<reco::TrackRef>);
-  bool matchLzTrack (const edm::Event&, const reco::TrackRef, double &, double &);     // added on dec 22 , 2015
+  //bool matchLzTrack (const edm::Event&, const reco::TrackRef, double &, double &);     // added on dec 22 , 2015
+  void matchLzTrack (const edm::Event&, const reco::TrackRef, double &, double &);
   bool matchPrimaryVertexTracks ();
 
   void saveLbToLzMuMu(const RefCountedKinematicTree);
@@ -1149,11 +1150,8 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 	if ( matchMuonTracks(iEvent, LambdaDaughterTracks) ) continue;
 
 
-
-
-
 	  // fit /\b vertex  mu- mu+ /\(pi- p+)
-	if ( ! hasGoodLbVertex(muTrackm, muTrackp, LambdaDaughterTracks,
+	if ( ! hasGoodLbVertex(iEvent, muTrackm, muTrackp, LambdaDaughterTracks,
                                  lb_vtx_chisq, lb_vtx_cl, lb_mass,
                                  vertexFitTree, LzvertexFitTree ) ) continue;
 
@@ -1164,7 +1162,7 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 
 
 	  // fit /\bbar vertex mu- mu+ /\bar(pi+ p-)                                                                                                                
-          if ( ! hasGoodLbVertex(muTrackm, muTrackp, LambdaDaughterTracks,
+          if ( ! hasGoodLbVertex(iEvent, muTrackm, muTrackp, LambdaDaughterTracks,
                                  lb_vtx_chisq, lb_vtx_cl, lbbar_mass,
                                  barVertexFitTree, LzvertexFitTree ) ) continue;
 
@@ -1191,15 +1189,12 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 	  lzbarmass->push_back(lzbar_mass);
 	  lbvtxcl->push_back(lb_vtx_cl);
 	  
-
           saveLbToLzMuMu(vertexFitTree);
           saveLbVertex(vertexFitTree);
           saveLbCosAlpha(vertexFitTree);
           saveLbCosAlpha2d(vertexFitTree);
           saveLbLsig(vertexFitTree);
           saveLbCtau(vertexFitTree);
-
-
 
       }// close Lambda0 loop 
     } // close mu+ loop                                                                                                                                        
@@ -1547,6 +1542,7 @@ LambdaB::matchMuonTracks (const edm::Event& iEvent,
 //-------------------------
 // added on dec 22, 2015
 //-------------------------
+/*
 bool
 LambdaB::matchLzTrack (const edm::Event& iEvent,
 		       const reco::TrackRef theTrackRef, double & dau1_pt, double & dau2_pt)
@@ -1581,20 +1577,65 @@ LambdaB::matchLzTrack (const edm::Event& iEvent,
   return false;
 
 }
+*/
+
+ //-------------------------
+ // added on dec 31, 2015
+ //-------------------------
+void
+LambdaB::matchLzTrack (const edm::Event& iEvent,
+		       const reco::TrackRef theTrackRef, double & dau1_pt, double & dau2_pt)
+{
+  //if ( theTrackRef.isNull() ) continue;
+
+  edm::Handle<reco::VertexCompositeCandidateCollection> theLambdas;
+  iEvent.getByLabel(LambdaLabel_, theLambdas);
+
+  reco::TrackRef theDau1TrackRef;
+  reco::TrackRef theDau2TrackRef;
+
+  for ( reco::VertexCompositeCandidateCollection::const_iterator iLambda
+	  = theLambdas->begin(); iLambda != theLambdas->end(); ++iLambda) {
+
+    theDau1TrackRef = (*(dynamic_cast<const reco::RecoChargedCandidate *>
+			 (iLambda->daughter(0)))).track();
+
+    dau1_pt = theDau1TrackRef->pt();
+
+    //if ( ! theDau1TrackRef.isNull() && theDau1TrackRef == theTrackRef) return true;
+    if ( theDau1TrackRef.isNull() || theDau1TrackRef != theTrackRef ) continue;
+
+
+    theDau2TrackRef = (*(dynamic_cast<const reco::RecoChargedCandidate *>
+			 (iLambda->daughter(1)))).track();
+
+    dau2_pt = theDau2TrackRef->pt();
+
+    //if ( ! theDau2TrackRef.isNull() && theDau2TrackRef == theTrackRef) return true;
+    if ( theDau2TrackRef.isNull() || theDau2TrackRef != theTrackRef ) continue;
+
+  }
+
+  return ;
+
+}
 
 
 //------------------------
 // added on 13 dec 2015 //
 //------------------------
 bool
-LambdaB::hasGoodLzVertex(const vector<reco::TrackRef> theDaughterTracks, 
+LambdaB::hasGoodLzVertex(const edm::Event& iEvent, 
+			 const vector<reco::TrackRef> theDaughterTracks, 
 			 RefCountedKinematicTree &lzVertexFitTree)
 {
 
-  //  reco::TrackRef theTrackRef ;
-  // double dau1pt, dau2pt;
+  reco::TrackRef theTrackRef ;
+  double dau1pt, dau2pt;
 
   //if (! matchLzTrack(iEvent, theTrackRef, dau1pt, dau2pt) ) return false;
+
+  matchLzTrack(iEvent, theTrackRef, dau1pt, dau2pt) ;
 
   reco::TransientTrack dau1TT(theDaughterTracks[0], &(*bFieldHandle_) );
   reco::TransientTrack dau2TT(theDaughterTracks[1], &(*bFieldHandle_) );
@@ -1606,15 +1647,13 @@ LambdaB::hasGoodLzVertex(const vector<reco::TrackRef> theDaughterTracks,
   vector<RefCountedKinematicParticle> lzdauParticles;
 
   // assign proton mass to the track w/ higher momentum
-
-
-  //  if ( dau1pt > dau2pt ) {
+  if ( dau1pt > dau2pt ) {
     lzdauParticles.push_back(pFactory.particle(dau1TT,ProtonMass_,chi,ndf,ProtonMassErr_));
     lzdauParticles.push_back(pFactory.particle(dau2TT,  PionMass_,chi,ndf,  PionMassErr_));
-    //  } else{
-    //lzdauParticles.push_back(pFactory.particle(dau2TT,ProtonMass_,chi,ndf,ProtonMassErr_));
-    //lzdauParticles.push_back(pFactory.particle(dau1TT,  PionMass_,chi,ndf,  PionMassErr_));
-    //  }
+   } else{
+    lzdauParticles.push_back(pFactory.particle(dau2TT,ProtonMass_,chi,ndf,ProtonMassErr_));
+    lzdauParticles.push_back(pFactory.particle(dau1TT,  PionMass_,chi,ndf,  PionMassErr_));
+   }
 
 
   KinematicParticleVertexFitter fitter;
@@ -1626,10 +1665,10 @@ LambdaB::hasGoodLzVertex(const vector<reco::TrackRef> theDaughterTracks,
 
 
 bool
-LambdaB::hasGoodLzVertexMKC(const vector<reco::TrackRef> theDaughterTracks, 
+LambdaB::hasGoodLzVertexMKC(const edm::Event& iEvent, const vector<reco::TrackRef> theDaughterTracks, 
 			    RefCountedKinematicTree &lzVertexFitTree)
 {
-  if ( !hasGoodLzVertex(theDaughterTracks, lzVertexFitTree) ) return false;
+  if ( !hasGoodLzVertex(iEvent, theDaughterTracks, lzVertexFitTree) ) return false;
   KinematicParticleFitter csFitterLz;
   KinematicConstraint * lz_c = new MassKinematicConstraint(LzMass_,
 							   LzMassErr_);
@@ -1643,7 +1682,7 @@ LambdaB::hasGoodLzVertexMKC(const vector<reco::TrackRef> theDaughterTracks,
 
 
 bool
-LambdaB::hasGoodLbVertex(const reco::TrackRef mu1Track,
+LambdaB::hasGoodLbVertex(const edm::Event& iEvent, const reco::TrackRef mu1Track,
 			 const reco::TrackRef mu2Track,
 			 const vector<reco::TrackRef> LambdaDaughterTracks,
 			 double & lb_vtx_chisq, double & lb_vtx_cl,
@@ -1652,7 +1691,7 @@ LambdaB::hasGoodLbVertex(const reco::TrackRef mu1Track,
 
 {
 
-  if ( ! hasGoodLzVertexMKC(LambdaDaughterTracks, LzVertexFitTree) )
+  if ( ! hasGoodLzVertexMKC(iEvent, LambdaDaughterTracks, LzVertexFitTree) )
     return false;
 
   LzVertexFitTree->movePointerToTheTop();
