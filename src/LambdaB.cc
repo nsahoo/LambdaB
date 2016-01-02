@@ -16,6 +16,7 @@
 //*   original author:  Niladribihari Sahoo,42 3-024,+41227662373,   *
 //*      date created:  Tue Dec  8 23:43:26 CET 2015                 *
 //*          modified:  dec 21 (fixed vertexing error)               *
+//*          modified:  dec 31 (fixed track assign mass issue)       *
 //********************************************************************
 // $Id$
 //
@@ -1745,7 +1746,6 @@ LambdaB::hasGoodLbVertex(const edm::Event& iEvent, const reco::TrackRef mu1Track
 //---------------------------------
 //   need further fixing ??
 //---------------------------------
-
 void
 LambdaB::saveLbToLzMuMu(const RefCountedKinematicTree vertexFitTree){
 
@@ -2120,9 +2120,9 @@ LambdaB::saveGenInfo(const edm::Event& iEvent){
   }
 }
 
-
+//------------------------
 // added on dec 21, 2015
-
+//------------------------
 void 
 LambdaB::saveLzVariables(RefCountedKinematicTree LzvertexFitTree,
 			     reco::VertexCompositeCandidate iLambda)
@@ -2168,7 +2168,8 @@ LambdaB::saveLzVariables(RefCountedKinematicTree LzvertexFitTree,
   KinematicParameters LzPimKP;
 
 
-  // xcheck again !!
+  // xcheck again ??
+
   if ( LzPr1->currentState().particleCharge() > 0 ) LzPrpKP = LzPr1KP;
   if ( LzPr1->currentState().particleCharge() < 0 ) LzPrmKP = LzPr1KP;
   if ( LzPi2->currentState().particleCharge() > 0 ) LzPipKP = LzPi2KP;
