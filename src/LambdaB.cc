@@ -1181,7 +1181,7 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
                             MuMuCosAlphaBS, MuMuCosAlphaBSErr,
                             mu_mu_mass, mu_mu_mass_err);
 
-	  ///saveLzVariables(LzvertexFitTree, *iLambda);
+	  saveLzVariables(LzvertexFitTree, *iLambda);
           saveSoftMuonVariables(*iMuonM, *iMuonP, muTrackm, muTrackp);
      
           trkdcabs->push_back(DCALzTrkBS);
@@ -1781,7 +1781,9 @@ LambdaB::saveLbToLzMuMu(const RefCountedKinematicTree vertexFitTree){
   mumpy->push_back(mum_KP->currentState().globalMomentum().y());
   mumpz->push_back(mum_KP->currentState().globalMomentum().z());
 
-
+  //--------------------
+  //  needs attention ??
+  //--------------------
   vertexFitTree->movePointerToTheNextChild();  // pion track                                                                   
   RefCountedKinematicParticle pi_KP = vertexFitTree->currentParticle();
   pichg->push_back(pi_KP->currentState().particleCharge());
@@ -2154,58 +2156,70 @@ LambdaB::saveLzVariables(RefCountedKinematicTree LzvertexFitTree,
   lzlsbserr->push_back(LzLSBSErr);
 
   LzvertexFitTree->movePointerToTheFirstChild(); // Lambda0 proton
-  RefCountedKinematicParticle LzPr1 = LzvertexFitTree->currentParticle();
+  RefCountedKinematicParticle LzDau1 = LzvertexFitTree->currentParticle();
 
   LzvertexFitTree->movePointerToTheNextChild(); // Lambda0 pion
-  RefCountedKinematicParticle LzPi2 = LzvertexFitTree->currentParticle();
+  RefCountedKinematicParticle LzDau2 = LzvertexFitTree->currentParticle();
 
 
-  KinematicParameters LzPr1KP = LzPr1->currentState().kinematicParameters();
-  KinematicParameters LzPi2KP = LzPi2->currentState().kinematicParameters();
-  KinematicParameters LzPrpKP;
-  KinematicParameters LzPrmKP;
-  KinematicParameters LzPipKP;
-  KinematicParameters LzPimKP;
+  KinematicParameters LzDau1KP = LzDau1->currentState().kinematicParameters();
+  KinematicParameters LzDau2KP = LzDau2->currentState().kinematicParameters();
+  KinematicParameters LzPrKP;
+  //KinematicParameters LzPrmKP;
+  KinematicParameters LzPiKP;
+  //KinematicParameters LzPimKP;
 
-
+  //------------------
   // xcheck again ??
+  //------------------
+  if (LzDau1->currentState().globalMomentum().mag() > LzDau2->currentState().globalMomentum().mag()){
 
+    LzPrKP = LzDau1KP ; LzPiKP = LzDau2KP ;
+
+  } else {
+
+    LzPrKP = LzDau2KP ; LzPiKP =LzDau1KP ;
+  }
+
+  /*
   if ( LzPr1->currentState().particleCharge() > 0 ) LzPrpKP = LzPr1KP;
   if ( LzPr1->currentState().particleCharge() < 0 ) LzPrmKP = LzPr1KP;
   if ( LzPi2->currentState().particleCharge() > 0 ) LzPipKP = LzPi2KP;
   if ( LzPi2->currentState().particleCharge() < 0 ) LzPimKP = LzPi2KP;
+  */
+
+  //prchg->push_back(LzPrKP.particleCharge());
+  prpx->push_back(LzPrKP.momentum().x());
+  prpy->push_back(LzPrKP.momentum().y());
+  prpz->push_back(LzPrKP.momentum().z());
+
+  //pichg->push_back(LzPiKP.particleCharge());
+  pipx->push_back(LzPiKP.momentum().x());
+  pipy->push_back(LzPiKP.momentum().y());
+  pipz->push_back(LzPiKP.momentum().z());
 
 
-  pippx->push_back(ksPipKP.momentum().x());
-  pippy->push_back(ksPipKP.momentum().y());
-  pippz->push_back(ksPipKP.momentum().z());
 
-  pimpx->push_back(ksPimKP.momentum().x());
-  pimpy->push_back(ksPimKP.momentum().y());
-  pimpz->push_back(ksPimKP.momentum().z());
-
-
-
-  if ( iKshort.daughter(0)->charge() < 0) {
-    pimd0->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
-		      (iKshort.daughter(0)))->track()->d0());
-    pimd0err->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
-			 (iKshort.daughter(0)))->track()->d0Error());
-    pipd0->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
-		      (iKshort.daughter(1)))->track()->d0());
-    pipd0err->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
-			 (iKshort.daughter(1)))->track()->d0Error());
+  if ( iLambda.daughter(0)->charge() < 0) {
+    pid0->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
+		      (iLambda.daughter(0)))->track()->d0());
+    pid0err->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
+			 (iLambda.daughter(0)))->track()->d0Error());
+    prd0->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
+		      (iLambda.daughter(1)))->track()->d0());
+    prd0err->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
+			 (iLambda.daughter(1)))->track()->d0Error());
 
   } else {
-    pimd0->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
-		      (iKshort.daughter(1)))->track()->d0());
-    pimd0err->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
-			 (iKshort.daughter(1)))->track()->d0Error());
+    prd0->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
+		      (iLambda.daughter(1)))->track()->d0());
+    prd0err->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
+			 (iLambda.daughter(1)))->track()->d0Error());
 
-    pipd0->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
-		      (iKshort.daughter(0)))->track()->d0());
-    pipd0err->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
-			 (iKshort.daughter(0)))->track()->d0Error());
+    pid0->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
+		      (iLambda.daughter(0)))->track()->d0());
+    pid0err->push_back((dynamic_cast<const reco::RecoChargedCandidate *>
+			 (iLambda.daughter(0)))->track()->d0Error());
   }
 
 }
