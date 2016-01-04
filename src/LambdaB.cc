@@ -10,14 +10,15 @@
  Implementation:
      [Notes on implementation]
 */
-//********************************************************************
-//*         Ntuplizer code for /\b -> /\(->p+pi) mu+ mu-             *
-//*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*
-//*   original author:  Niladribihari Sahoo,42 3-024,+41227662373,   *
-//*      date created:  Tue Dec  8 23:43:26 CET 2015                 *
-//*          modified:  dec 21 (fixed vertexing error)               *
-//*          modified:  dec 31 (fixed track assign mass issue)       *
-//********************************************************************
+//*************************************************************************
+//*           Ntuplizer code for /\b -> /\(->p+pi) mu+ mu-                *
+//*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *
+//*   original author:  Niladribihari Sahoo,42 3-024,+41227662373,        *
+//*      date created:  Tue Dec  8 23:43:26 CET 2015                      *
+//*          modified:  dec 21 (fixed vertexing error)                    *
+//*          modified:  dec 31 (fixed track assign mass issue)            *
+//*            added :  jan 4 (added vars to save /\ dau's charge info    *
+//*************************************************************************
 // $Id$
 //
 //
@@ -311,7 +312,7 @@ class LambdaB : public edm::EDAnalyzer {
   double TruthMatchMuonMaxR_;
   double TruthMatchPionMaxR_;
   double TruthMatchProtonMaxR_;
-
+  double TruthMatchLzMaxVtx_;
   //---------------------
   // pre-selection cuts  
   //---------------------                                                                                                                                       
@@ -426,7 +427,7 @@ class LambdaB : public edm::EDAnalyzer {
 
   string decname;
 
-  vector<bool> *istruemum, *istruemup, *istruepr, *istruepi, *istruelb;
+  vector<bool> *istruemum, *istruemup, *istruepr, *istruepi, *istruelz, *istruelb;
 
   //-----------------------
   // variables to monitor  
@@ -484,6 +485,7 @@ LambdaB::LambdaB(const edm::ParameterSet& iConfig):
   TruthMatchMuonMaxR_(iConfig.getUntrackedParameter<double>("TruthMatchMuonMaxR")),
   TruthMatchPionMaxR_(iConfig.getUntrackedParameter<double>("TruthMatchPionMaxR")),
   TruthMatchProtonMaxR_(iConfig.getUntrackedParameter<double>("TruthMatchProtonMaxR")),
+  TruthMatchLzMaxVtx_(iConfig.getUntrackedParameter<double>("TruthMatchLzMaxVtx")),
   
   //--------------------
   // pre-selection cuts 
@@ -562,7 +564,7 @@ LambdaB::LambdaB(const edm::ParameterSet& iConfig):
   genpimpx(0), genpimpy(0), genpimpz(0),
 
   decname(""),
-  istruemum(0), istruemup(0), istruepr(0), istruepi(0), istruelb(0)
+  istruemum(0), istruemup(0), istruepr(0), istruepi(0), istruelz(0), istruelb(0)
 
 
 {
@@ -796,6 +798,7 @@ LambdaB::beginJob()
     tree_->Branch("istruemup",  &istruemup );
     tree_->Branch("istruepr",   &istruepr  );
     tree_->Branch("istruepi",   &istruepi  );
+    tree_->Branch("istruelz",   &istruelz  );
     tree_->Branch("istruelb",   &istruelb  );
 
 
@@ -936,7 +939,7 @@ LambdaB::clearVariables(){
 
     decname = "";
     istruemum->clear(); istruemup->clear(); istruepr->clear();
-    istruepi->clear(); istruelb->clear();
+    istruepi->clear(); istruelz->clear(); istruelb->clear();
 
 
   }
@@ -1784,6 +1787,7 @@ LambdaB::saveLbToLzMuMu(const RefCountedKinematicTree vertexFitTree){
   //--------------------
   //  needs attention ??
   //--------------------
+  /*
   vertexFitTree->movePointerToTheNextChild();  // pion track                                                                   
   RefCountedKinematicParticle pi_KP = vertexFitTree->currentParticle();
   pichg->push_back(pi_KP->currentState().particleCharge());
@@ -1797,8 +1801,14 @@ LambdaB::saveLbToLzMuMu(const RefCountedKinematicTree vertexFitTree){
   prpx->push_back(pr_KP->currentState().globalMomentum().x());
   prpy->push_back(pr_KP->currentState().globalMomentum().y());
   prpz->push_back(pr_KP->currentState().globalMomentum().z());
+  */
 
-
+  vertexFitTree->movePointerToTheNextChild();  // Lambda0                                                                                                    
+  RefCountedKinematicParticle lz_KP = vertexFitTree->currentParticle();
+  //pichg->push_back(pi_KP->currentState().particleCharge());
+  lzpx->push_back(lz_KP->currentState().globalMomentum().x());
+  lzpy->push_back(lz_KP->currentState().globalMomentum().y());
+  lzpz->push_back(lz_KP->currentState().globalMomentum().z());
 
 }
 
@@ -2119,6 +2129,7 @@ LambdaB::saveGenInfo(const edm::Event& iEvent){
     genmuppx = mup->px();
     genmuppy = mup->py();
     genmuppz = mup->pz();
+
   }
 }
 
@@ -2266,12 +2277,12 @@ LambdaB::saveSoftMuonVariables(pat::Muon iMuonM, pat::Muon iMuonP,
 
 void
 LambdaB::saveDimuVariables(double DCAmumBS, double DCAmumBSErr,
-                                double DCAmupBS, double DCAmupBSErr,
-                                double mumutrk_R, double mumutrk_Z,
-                                double DCAmumu,  double mu_mu_vtx_cl,
-                                double MuMuLSBS, double MuMuLSBSErr,
-                                double MuMuCosAlphaBS, double MuMuCosAlphaBSErr,
-                                double mu_mu_mass, double mu_mu_mass_err)
+                           double DCAmupBS, double DCAmupBSErr,
+                           double mumutrk_R, double mumutrk_Z,
+                           double DCAmumu,  double mu_mu_vtx_cl,
+                           double MuMuLSBS, double MuMuLSBSErr,
+                           double MuMuCosAlphaBS, double MuMuCosAlphaBSErr,
+                           double mu_mu_mass, double mu_mu_mass_err)
 
 {
   mumdcabs->push_back(DCAmumBS);
@@ -2351,7 +2362,7 @@ LambdaB::saveTruthMatch(const edm::Event& iEvent){
     }
 
     //---------------------------------
-    // truth match with proton track   
+    // truth match with Lambda0 proton track   
     //---------------------------------                                                                                                                       
     deltaEtaPhi = calEtaPhiDistance(genprpx, genprpy, genprpz,
                                     prpx->at(i), prpy->at(i), prpz->at(i));
@@ -2362,7 +2373,7 @@ LambdaB::saveTruthMatch(const edm::Event& iEvent){
     }
 
     //--------------------------------
-    // truth match with pion track    
+    // truth match with Lambda0 pion track    
     //--------------------------------                                                                                                                      
     deltaEtaPhi = calEtaPhiDistance(genpipx, genpipy, genpipz,
                                     pipx->at(i), pipy->at(i), pipz->at(i));
@@ -2372,11 +2383,27 @@ LambdaB::saveTruthMatch(const edm::Event& iEvent){
       istruepi->push_back(false);
     }
 
+    //------------------------
+    // truth match Lambda0 vertex
+    //------------------------
+    float deltaRlzvtx = sqrt( (genlzvtxx - lzvtxx->at(i))*
+			      (genlzvtxx - lzvtxx->at(i)) +
+			      (genlzvtxy - lzvtxy->at(i))*
+			      (genlzvtxy - lzvtxy->at(i)) +
+			      (genlzvtxz - lzvtxz->at(i))*
+			      (genlzvtxz - lzvtxz->at(i)) );
+
+    if ( istruepr && istruepi && (deltaRlzvtx<TruthMatchLzMaxVtx_) ){
+      istruelz->push_back(true);
+    } else {
+      istruelz->push_back(false);
+    }
+
+
     //---------------------------------------
     // truth match with /\b or /\b bar 
     //---------------------------------------                                                                                                
-    if ( istruemum->back() && istruemup->back()
-         && istruepr->back() && istruepi->back()) {
+    if ( istruemum->back() && istruemup->back() && istruelz->back() ) {
       istruelb->push_back(true);
     } else {
       istruelb->push_back(false);
