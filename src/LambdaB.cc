@@ -2175,10 +2175,14 @@ LambdaB::saveLzVariables(RefCountedKinematicTree LzvertexFitTree,
   if (LzDau1->currentState().globalMomentum().mag() > LzDau2->currentState().globalMomentum().mag()){
 
     LzPrKP = LzDau1KP ; LzPiKP = LzDau2KP ;
+    prchg->push_back(LzDau1->currentState().particleCharge());
+    pichg->push_back(LzDau2->currentState().particleCharge());
 
   } else {
 
     LzPrKP = LzDau2KP ; LzPiKP =LzDau1KP ;
+    prchg->push_back(LzDau2->currentState().particleCharge());
+    pichg->push_back(LzDau1->currentState().particleCharge());
   }
 
   /*
@@ -2188,12 +2192,12 @@ LambdaB::saveLzVariables(RefCountedKinematicTree LzvertexFitTree,
   if ( LzPi2->currentState().particleCharge() < 0 ) LzPimKP = LzPi2KP;
   */
 
-  //prchg->push_back(LzPrKP.particleCharge());
+  //prchg->push_back(LzPrKP.charge());
   prpx->push_back(LzPrKP.momentum().x());
   prpy->push_back(LzPrKP.momentum().y());
   prpz->push_back(LzPrKP.momentum().z());
 
-  //pichg->push_back(LzPiKP.particleCharge());
+  //pichg->push_back(LzPiKP.charge());
   pipx->push_back(LzPiKP.momentum().x());
   pipy->push_back(LzPiKP.momentum().y());
   pipz->push_back(LzPiKP.momentum().z());
