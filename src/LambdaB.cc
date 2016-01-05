@@ -330,8 +330,8 @@ class LambdaB : public edm::EDAnalyzer {
   double MuMuMaxInvMass_;
   double MuMuMinLxySigmaBs_;
   double MuMuMinCosAlphaBs_;
-  double LzMinMass_;
-  double LzMaxMass_;
+  //double LzMinMass_;
+  //double LzMaxMass_;
   double LbMinVtxCl_;
   double LbMinMass_;
   double LbMaxMass_;
@@ -507,8 +507,8 @@ LambdaB::LambdaB(const edm::ParameterSet& iConfig):
   MuMuMinLxySigmaBs_(iConfig.getUntrackedParameter<double>("MuMuMinLxySigmaBs")),
   MuMuMinCosAlphaBs_(iConfig.getUntrackedParameter<double>("MuMuMinCosAlphaBs")),
 
-  LzMinMass_(iConfig.getUntrackedParameter<double>("LzMinMass")),
-  LzMaxMass_(iConfig.getUntrackedParameter<double>("LzMaxMass")),
+  //LzMinMass_(iConfig.getUntrackedParameter<double>("LzMinMass")),
+  //LzMaxMass_(iConfig.getUntrackedParameter<double>("LzMaxMass")),
   LbMinVtxCl_(iConfig.getUntrackedParameter<double>("LbMinVtxCl")),
   LbMinMass_(iConfig.getUntrackedParameter<double>("LbMinMass")),
   LbMaxMass_(iConfig.getUntrackedParameter<double>("LbMaxMass")),
