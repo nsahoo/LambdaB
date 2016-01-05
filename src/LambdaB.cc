@@ -135,8 +135,8 @@ HistArgs hist_args[kHistNameSize] = {
   // name, title, n_bins, x_min, x_max                                                                                                        
 
   {"h_events", "Processed Events", 1, 0, 1},
-  {"h_mupt", "Muon pT; [GeV]", 100, 0, 30},
-  {"h_mueta", "Muon eta", 100, 0, 3},
+  {"h_mupt", "Muon pT; pT(#mu)[GeV]", 100, 0, 30},
+  {"h_mueta", "Muon eta; #eta(#mu)", 100, 0, 3},
   {"h_mumdcabs", "#mu^{-} DCA beam spot; DCA [cm]", 100, 0, 10},
   {"h_mumutrkr", "#mu^{+}#mu^{-} distance in phi-eta; [cm]", 100, 0, 50},
   {"h_mumutrkz", "#mu^{+}#mu^{-} distance in Z; [cm]", 100, 0, 100},
@@ -146,23 +146,21 @@ HistArgs hist_args[kHistNameSize] = {
   {"h_mumupt",    "#mu^{+}#mu^{-} pT ; pT [GeV]", 100, 0, 50},
   {"h_mumumass", "#mu^{+}#mu^{-} invariant mass; M(#mu^{+}#mu^{-}) [GeV/c^{2}]",
    100, 2, 20},
-  {"h_mumulxybs", "#mu^{+}#mu^{-} Lxy #sigma beam spot", 100, 0, 100},
+  {"h_mumulxybs", "#mu^{+}#mu^{-} Lxy/#sigma beam spot", 100, 0, 100},
 
   {"h_mumucosalphabs", "#mu^{+}#mu^{-} cos #alpha beam spot", 100, 0, 1},
   {"h_trkpt", "Pion track pT; pT [GeV]", 100, 0, 20},
   {"h_trkdcasigbs", "Pion track DCA/#sigma beam spot; DCA/#sigma", 1000, 0, 100},
   {"h_lbvtxchisq", "#lambda_{b} decay vertex chisq", 100, 0, 1000},
   {"h_lbvtxcl", "#lambda_{b} decay vertex CL", 100, 0, 1},
-
-  {"h_lzmass", "#lambda^{0} mass; M(#lambda^{0}) [GeV/^{2}]", 100, 0, 20},   // Lambda0 mass
-
-  {"h_lbmass", "#lambda_{b} mass; M(#lambda_{b}) [GeV]", 100, 0, 20},     // LambdaB mass
+  {"h_lzmass", "#lambda^{0} mass; M(#lambda^{0}) [GeV/c^{2}]", 100, 0, 20},   // Lambda0 mass
+  {"h_lbmass", "#lambda_{b} mass; M(#lambda_{b}) [GeV/c^{2}]", 100, 0, 20},     // LambdaB mass
 
 };
 
 //--------------------
 // Define histograms  
-//--------------------                                                                                                                              
+//--------------------                                                                                                        
 TH1F *histos[kHistNameSize];
 
 
@@ -422,8 +420,8 @@ class LambdaB : public edm::EDAnalyzer {
 
   double genmumpx, genmumpy, genmumpz;
   double genmuppx, genmuppy, genmuppz;
-  double genpippx, genpippy, genpippz;
-  double genpimpx, genpimpy, genpimpz;
+  //double genpippx, genpippy, genpippz;
+  //double genpimpx, genpimpy, genpimpz;
 
   string decname;
 
@@ -560,8 +558,8 @@ LambdaB::LambdaB(const edm::ParameterSet& iConfig):
   genmumpx(0), genmumpy(0), genmumpz(0),
   genmuppx(0), genmuppy(0), genmuppz(0),
 
-  genpippx(0), genpippy(0), genpippz(0),
-  genpimpx(0), genpimpy(0), genpimpz(0),
+  //genpippx(0), genpippy(0), genpippz(0),
+  //genpimpx(0), genpimpy(0), genpimpz(0),
 
   decname(""),
   istruemum(0), istruemup(0), istruepr(0), istruepi(0), istruelz(0), istruelb(0)
@@ -604,6 +602,7 @@ LambdaB::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   histos[h_events]->Fill(0);
 
   if (IsMonteCarlo_) saveGenInfo(iEvent);
+  printf("GEN info stored.\n");
 
   hltReport(iEvent);
 
@@ -625,6 +624,7 @@ LambdaB::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     }
   }
 
+  printf("tree filling.\n");
 
   clearVariables();
 
@@ -787,12 +787,14 @@ LambdaB::beginJob()
     tree_->Branch("genmuppx",    &genmuppx   , "genmuppx/D"  );
     tree_->Branch("genmuppy",    &genmuppy   , "genmuppy/D"  );
     tree_->Branch("genmuppz",    &genmuppz   , "genmuppz/D"  );
+    /*
     tree_->Branch("genpimpx",    &genpimpx   , "genpimpx/D"  );
     tree_->Branch("genpimpy",    &genpimpy   , "genpimpy/D"  );
     tree_->Branch("genpimpz",    &genpimpz   , "genpimpz/D"  );
     tree_->Branch("genpippx",    &genpippx   , "genpippx/D"  );
     tree_->Branch("genpippy",    &genpippy   , "genpippy/D"  );
     tree_->Branch("genpippz",    &genpippz   , "genpippz/D"  );
+    */
     tree_->Branch("decname",  &decname);
     tree_->Branch("istruemum",  &istruemum );
     tree_->Branch("istruemup",  &istruemup );
@@ -934,8 +936,8 @@ LambdaB::clearVariables(){
     genmumpx = 0;  genmumpy = 0;  genmumpz = 0;
     genmuppx = 0;  genmuppy = 0;  genmuppz = 0;
 
-    genpippx = 0; genpippy = 0; genpippz = 0;
-    genpimpx = 0; genpimpy = 0; genpimpz = 0;
+    //genpippx = 0; genpippy = 0; genpippz = 0;
+    //genpimpx = 0; genpimpy = 0; genpimpz = 0;
 
     decname = "";
     istruemum->clear(); istruemup->clear(); istruepr->clear();
