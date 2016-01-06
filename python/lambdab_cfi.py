@@ -50,7 +50,7 @@ makeTrackCandidates(process,
 from PhysicsTools.PatAlgos.tools.coreTools import *
 removeMCMatching(process, ['All'], outputModules=[])
 
-process.localV0Candidates = cms.EDProducer(
+process.generalV0Candidates = cms.EDProducer(
     "V0Producer",
     
     # InputTag that tells which TrackCollection to use for vertexing
@@ -114,7 +114,7 @@ process.localV0Candidates = cms.EDProducer(
     #   V0 mass window, Candidate mass must be within these values of
     #     the PDG mass to be stored in the collection
     # kShortMassCut = cms.double(0.07),
-   ### kShortMassCut = cms.double(0.08),
+    kShortMassCut = cms.double(0.08),
     lambdaMassCut = cms.double(0.05),
     #   Mass window cut using normalized mass (mass / massError)
     #   (UNUSED)
@@ -130,8 +130,10 @@ process.localV0Candidates = cms.EDProducer(
 
  
 process.ntuple = cms.EDAnalyzer(
-    'LbToLzMuMu',
-    OutputFileName = cms.string("LbToLzMuMu.root"),
+#    'LbToLzMuMu',
+    'LambdaB',
+#    OutputFileName = cms.string("LbToLzMuMu.root"),
+    OutputFileName = cms.string("LambdaB.root"),
     BuildLbToLzMuMu = cms.untracked.bool(True), 
 
     MuonMass = cms.untracked.double(0.10565837), 
@@ -211,5 +213,5 @@ process.patDefaultSequence.remove(process.selectedPatJets)
 process.patDefaultSequence.remove(process.cleanPatJets)
 process.patDefaultSequence.remove(process.countPatJets)
 
-#process.p = cms.Path(process.patDefaultSequence * process.localV0Candidates * process.ntuple)
-process.p = cms.Path(process.patDefaultSequence * process.ntuple)
+process.p = cms.Path(process.patDefaultSequence * process.generalV0Candidates * process.ntuple)
+#process.p = cms.Path(process.patDefaultSequence * process.ntuple)
