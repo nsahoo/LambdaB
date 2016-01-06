@@ -117,8 +117,8 @@ enum HistName{
   h_mumulxybs,
 
   h_mumucosalphabs,
-  h_trkpt,
-  h_trkdcasigbs,
+  //h_trkpt,
+  //h_trkdcasigbs,
   h_lbvtxchisq,
   h_lbvtxcl,
 
@@ -140,21 +140,19 @@ HistArgs hist_args[kHistNameSize] = {
   {"h_mumdcabs", "#mu^{-} DCA beam spot; DCA [cm]", 100, 0, 10},
   {"h_mumutrkr", "#mu^{+}#mu^{-} distance in phi-eta; [cm]", 100, 0, 50},
   {"h_mumutrkz", "#mu^{+}#mu^{-} distance in Z; [cm]", 100, 0, 100},
-
   {"h_mumudca",  "#mu^{+}#mu^{-} DCA; [cm]", 100, 0, 20},
   {"h_mumuvtxcl",  "#mu^{+}#mu^{-} vertex CL", 100, 0, 1},
   {"h_mumupt",    "#mu^{+}#mu^{-} pT ; pT [GeV]", 100, 0, 50},
   {"h_mumumass", "#mu^{+}#mu^{-} invariant mass; M(#mu^{+}#mu^{-}) [GeV/c^{2}]",
    100, 2, 20},
   {"h_mumulxybs", "#mu^{+}#mu^{-} Lxy/#sigma beam spot", 100, 0, 100},
-
-  {"h_mumucosalphabs", "#mu^{+}#mu^{-} cos #alpha beam spot", 100, 0, 1},
-  {"h_trkpt", "Pion track pT; pT [GeV]", 100, 0, 20},
-  {"h_trkdcasigbs", "Pion track DCA/#sigma beam spot; DCA/#sigma", 1000, 0, 100},
-  {"h_lbvtxchisq", "#lambda_{b} decay vertex chisq", 100, 0, 1000},
-  {"h_lbvtxcl", "#lambda_{b} decay vertex CL", 100, 0, 1},
-  {"h_lzmass", "#lambda^{0} mass; M(#lambda^{0}) [GeV/c^{2}]", 100, 0, 20},   // Lambda0 mass
-  {"h_lbmass", "#lambda_{b} mass; M(#lambda_{b}) [GeV/c^{2}]", 100, 0, 20},     // LambdaB mass
+  {"h_mumucosalphabs", "#mu^{+}#mu^{-} cos#alpha beam spot", 100, 0, 1},
+  //{"h_trkpt", "Pion track pT; pT [GeV]", 100, 0, 20},
+  //{"h_trkdcasigbs", "Pion track DCA/#sigma beam spot; DCA/#sigma", 1000, 0, 100},
+  {"h_lbvtxchisq", "#Lambda_{b} decay vertex chisq", 100, 0, 1000},
+  {"h_lbvtxcl", "#Lambda_{b} decay vertex CL", 100, 0, 1},
+  {"h_lzmass", "#Lambda^{0} mass; M(#Lambda^{0}) [GeV/c^{2}]", 100, 0, 20},   // Lambda0 mass
+  {"h_lbmass", "#Lambda_{b} mass; M(#Lambda_{b}) [GeV/c^{2}]", 100, 0, 20},   // LambdaB mass
 
 };
 
@@ -162,7 +160,6 @@ HistArgs hist_args[kHistNameSize] = {
 // Define histograms  
 //--------------------                                                                                                        
 TH1F *histos[kHistNameSize];
-
 
 //---------------------
 // class declaration
@@ -221,7 +218,6 @@ class LambdaB : public edm::EDAnalyzer {
 
   bool hasGoodLzVertexMKC(const edm::Event&, const vector<reco::TrackRef>, RefCountedKinematicTree &);
 
-
   bool hasGoodMuonDcaBs (const reco::TransientTrack, double &, double &);
   bool hasGoodTrackDcaBs (const reco::TransientTrack, double &, double &);
   bool hasGoodTrackDcaPoint (const reco::TransientTrack, const GlobalPoint,
@@ -229,11 +225,9 @@ class LambdaB : public edm::EDAnalyzer {
 
   bool hasGoodLbMass(RefCountedKinematicTree, double &);  // LambdaB mass
 
-
   bool hasGoodLbVertex(const edm::Event&, const reco::TrackRef, const reco::TrackRef,                       // LambdaB vertex
                        const vector<reco::TrackRef>, double &, double &, double &,      
 		       RefCountedKinematicTree & , RefCountedKinematicTree & );
-
 
   bool hasGoodMuMuVertex (const reco::TransientTrack, const reco::TransientTrack,
                           reco::TransientTrack &, reco::TransientTrack &,
@@ -311,6 +305,7 @@ class LambdaB : public edm::EDAnalyzer {
   double TruthMatchPionMaxR_;
   double TruthMatchProtonMaxR_;
   double TruthMatchLzMaxVtx_;
+
   //---------------------
   // pre-selection cuts  
   //---------------------                                                                                                                                       
@@ -374,8 +369,8 @@ class LambdaB : public edm::EDAnalyzer {
   vector<double> *mumpt, *muppt, *mumeta, *mupeta;
 
 
-  vector<int> *trkchg; // +1 for pi+, -1 for pi-                                                                                                                
-  vector<double> *trkpx, *trkpy, *trkpz, *trkpt;
+  //vector<int> *trkchg; // +1 for pi+, -1 for pi-                                                                                                                
+  //vector<double> *trkpx, *trkpy, *trkpz, *trkpt;
   vector<double> *trkdcabs, *trkdcabserr;
 
 
@@ -390,7 +385,6 @@ class LambdaB : public edm::EDAnalyzer {
   vector<double> *pid0, *pid0err ;
   vector<double> *lzpx, *lzpy, *lzpz;
   vector<double> *lzvtxx, *lzvtxy, *lzvtxz, *lzvtxcl, *lzlsbs, *lzlsbserr;
-
   vector<double> *lzmass, *lzmasserr, *lzbarmass, *lzbarmasserr;
 
   //-----------
@@ -525,7 +519,7 @@ LambdaB::LambdaB(const edm::ParameterSet& iConfig):
   mumdzvtx(0), mupdzvtx(0), mumtriglastfilter(0), muptriglastfilter(0),
   mumpt(0), muppt(0), mumeta(0), mupeta(0),
 
-  trkchg(0), trkpx(0), trkpy(0), trkpz(0), trkpt(0),
+  //trkchg(0), trkpx(0), trkpy(0), trkpz(0), trkpt(0),
   trkdcabs(0), trkdcabserr(0),
 
   prchg(0),
@@ -602,7 +596,7 @@ LambdaB::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   histos[h_events]->Fill(0);
 
   if (IsMonteCarlo_) saveGenInfo(iEvent);
-  printf("GEN info stored.\n");
+  //printf("GEN info stored.\n");
 
   hltReport(iEvent);
 
@@ -624,7 +618,7 @@ LambdaB::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     }
   }
 
-  printf("tree filling.\n");
+  //printf("tree filling.\n");
 
   clearVariables();
 
@@ -705,11 +699,13 @@ LambdaB::beginJob()
   tree_->Branch("muppt", &muppt);
   tree_->Branch("mumeta", &mumeta);
   tree_->Branch("mupeta", &mupeta);
+  /*
   tree_->Branch("trkchg", &trkchg);
   tree_->Branch("trkpx", &trkpx);
   tree_->Branch("trkpy", &trkpy);
   tree_->Branch("trkpz", &trkpz);
   tree_->Branch("trkpt", &trkpt);
+  */
   tree_->Branch("trkdcabs", &trkdcabs);
   tree_->Branch("trkdcabserr", &trkdcabserr);
   tree_->Branch("prchg", &prchg);
@@ -892,7 +888,7 @@ LambdaB::clearVariables(){
   mumpt->clear(); muppt->clear();
   mumeta->clear(); mupeta->clear();
 
-  trkchg->clear(); trkpx->clear(); trkpy->clear(); trkpz->clear(); trkpt->clear();
+  //trkchg->clear(); trkpx->clear(); trkpy->clear(); trkpz->clear(); trkpt->clear();
   trkdcabs->clear(); trkdcabserr->clear();
 
   prchg->clear();
