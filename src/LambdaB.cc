@@ -149,7 +149,7 @@ HistArgs hist_args[kHistNameSize] = {
   {"h_mumucosalphabs", "#mu^{+}#mu^{-} cos#alpha beam spot", 100, 0, 1},
   //{"h_trkpt", "Pion track pT; pT [GeV]", 100, 0, 20},
   //{"h_trkdcasigbs", "Pion track DCA/#sigma beam spot; DCA/#sigma", 1000, 0, 100},
-  {"h_lbvtxchisq", "#Lambda_{b} decay vertex chisq", 100, 0, 1000},
+  {"h_lbvtxchisq", "#Lambda_{b} decay vertex #chi^{2}", 100, 0, 1000},
   {"h_lbvtxcl", "#Lambda_{b} decay vertex CL", 100, 0, 1},
   {"h_lzmass", "#Lambda^{0} mass; M(#Lambda^{0}) [GeV/c^{2}]", 100, 0, 20},   // Lambda0 mass
   {"h_lbmass", "#Lambda_{b} mass; M(#Lambda_{b}) [GeV/c^{2}]", 100, 0, 20},   // LambdaB mass
@@ -1153,25 +1153,48 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 
 
 	  // fit /\b vertex  mu- mu+ /\(pi- p+)
+	/*
 	if ( ! hasGoodLbVertex(iEvent, muTrackm, muTrackp, LambdaDaughterTracks,
                                  lb_vtx_chisq, lb_vtx_cl, lb_mass,
                                  vertexFitTree, LzvertexFitTree ) ) continue;
+	*/
 
-          histos[h_lbvtxchisq]->Fill(lb_vtx_chisq);
-          histos[h_lbvtxcl]->Fill(lb_vtx_cl);
+	passed = hasGoodLbVertex(iEvent, muTrackm, muTrackp, LambdaDaughterTracks,
+                                 lb_vtx_chisq, lb_vtx_cl, lb_mass,
+                                 vertexFitTree, LzvertexFitTree );
 
-          if ( lb_vtx_cl < LbMinVtxCl_ || lb_mass < LbMinMass_ || lb_mass > LbMaxMass_ ) continue;
+	histos[h_lbvtxchisq]->Fill(lb_vtx_chisq);
+        histos[h_lbvtxcl]->Fill(lb_vtx_cl);
+
+	if ( !passed) continue;
+
+	//histos[h_lbvtxchisq]->Fill(lb_vtx_chisq);
+	//histos[h_lbvtxcl]->Fill(lb_vtx_cl);
+
+	if ( lb_vtx_cl < LbMinVtxCl_ || lb_mass < LbMinMass_ || lb_mass > LbMaxMass_ ) continue;
 
 
 	  // fit /\bbar vertex mu- mu+ /\bar(pi+ p-)                                                                                                                
+	/*
           if ( ! hasGoodLbVertex(iEvent, muTrackm, muTrackp, LambdaDaughterTracks,
                                  lb_vtx_chisq, lb_vtx_cl, lbbar_mass,
                                  barVertexFitTree, LzvertexFitTree ) ) continue;
+	*/
+	  passed = hasGoodLbVertex(iEvent, muTrackm, muTrackp, LambdaDaughterTracks,
+				   lb_vtx_chisq, lb_vtx_cl, lbbar_mass,
+				   barVertexFitTree, LzvertexFitTree );
+
+	  if ( !passed) continue;
 
           if ( lb_vtx_cl < LbMinVtxCl_ || lbbar_mass < LbMinMass_ || lbbar_mass > LbMaxMass_ ) continue;
 
 
 	  // need to check with primaryVertex tracks ???                                                                                                           
+
+	  passed = hasGoodLbMass(vertexFitTree, lb_mass);
+	  histos[h_lbmass]->Fill(lb_mass);
+
+	  if (!passed) continue;
 
           nb++;
 
@@ -1184,13 +1207,13 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 
 	  saveLzVariables(LzvertexFitTree, *iLambda);
           saveSoftMuonVariables(*iMuonM, *iMuonP, muTrackm, muTrackp);
-     
+	  //     
           trkdcabs->push_back(DCALzTrkBS);
           trkdcabserr->push_back(DCALzTrkBSErr);
           lzmass->push_back(lz_mass);
 	  lzbarmass->push_back(lzbar_mass);
 	  lbvtxcl->push_back(lb_vtx_cl);
-	  
+	  //
           saveLbToLzMuMu(vertexFitTree);
           saveLbVertex(vertexFitTree);
           saveLbCosAlpha(vertexFitTree);
@@ -1681,6 +1704,16 @@ LambdaB::hasGoodLzVertexMKC(const edm::Event& iEvent, const vector<reco::TrackRe
   return true;
 }
 
+bool
+LambdaB::hasGoodLbMass(RefCountedKinematicTree vertexFitTree,
+			    double & lb_mass)
+{
+  vertexFitTree->movePointerToTheTop();
+  RefCountedKinematicParticle lb_KP = vertexFitTree->currentParticle();
+  lb_mass = lb_KP->currentState().mass();
+  if ( lb_mass < LbMinMass_ || lb_mass > LbMaxMass_ ) return false;
+  return true;
+}
 
 
 bool
