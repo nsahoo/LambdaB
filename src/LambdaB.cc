@@ -1165,6 +1165,7 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 
 	histos[h_lbvtxchisq]->Fill(lb_vtx_chisq);
         histos[h_lbvtxcl]->Fill(lb_vtx_cl);
+	histos[h_lbmass]->Fill(lb_mass);
 
 	if ( !passed) continue;
 
@@ -1191,8 +1192,8 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 
 	  // need to check with primaryVertex tracks ???                                                                                                           
 
-	  passed = hasGoodLbMass(vertexFitTree, lb_mass);
-	  histos[h_lbmass]->Fill(lb_mass);
+	  //passed = hasGoodLbMass(vertexFitTree, lb_mass);
+	  //histos[h_lbmass]->Fill(lb_mass);
 
 	  if (!passed) continue;
 
@@ -1726,8 +1727,7 @@ LambdaB::hasGoodLbVertex(const edm::Event& iEvent, const reco::TrackRef mu1Track
 
 {
 
-  if ( ! hasGoodLzVertexMKC(iEvent, LambdaDaughterTracks, LzVertexFitTree) )
-    return false;
+  if ( ! hasGoodLzVertexMKC(iEvent, LambdaDaughterTracks, LzVertexFitTree) )  return false;
 
   LzVertexFitTree->movePointerToTheTop();
   RefCountedKinematicParticle lz_KP = LzVertexFitTree->currentParticle();
