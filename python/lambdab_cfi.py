@@ -153,7 +153,6 @@ process.ntuple = cms.EDAnalyzer(
     VertexLabel = cms.InputTag('offlinePrimaryVertices'),
     MuonLabel = cms.InputTag('cleanPatMuonsTriggerMatch'),
     LambdaLabel = cms.InputTag('generalV0Candidates:Lambda'),
-    #LambdaLabel = cms.InputTag('localV0Candidates:Lambda'),
     TrackLabel = cms.InputTag('cleanPatTrackCands'), 
     TriggerNames = cms.vstring([]),
     LastFilterNames = cms.vstring([]),
@@ -163,8 +162,8 @@ process.ntuple = cms.EDAnalyzer(
     IsMonteCarlo = cms.untracked.bool(False),
     KeepGENOnly  = cms.untracked.bool(False),
     TruthMatchMuonMaxR = cms.untracked.double(0.004), # [eta-phi]
-    TruthMatchPionMaxR = cms.untracked.double(0.3), # [eta-phi]
-    TruthMatchProtonMaxR = cms.untracked.double(0.3),  ###  CHECK THIS VALUE
+    TruthMatchPionMaxR = cms.untracked.double(0.2), # [eta-phi]
+    TruthMatchProtonMaxR = cms.untracked.double(0.1),  ###  CHECK THIS VALUE
     TruthMatchLzMaxVtx = cms.untracked.double(10.0),   ## CHECK THIS VALUE
 
     # HLT-trigger cuts (for reference https://espace.cern.ch/cms-quarkonia/trigger-bph/SitePages/2012-LowMass.aspx)
@@ -187,10 +186,8 @@ process.ntuple = cms.EDAnalyzer(
     TrkMaxR = cms.untracked.double(110.0), # [cm] ==> size of tracker volume in radial direction
     TrkMaxZ = cms.untracked.double(280.0), # [cm] ==> size of tracker volume in Z direction
 
-
-    ##KstarMinMass = cms.untracked.double(0.74), # [GeV/c2]  - 3 sigma of the width
-    ##KstarMaxMass = cms.untracked.double(1.04), # [GeV/c2]  + 3 sigma of the width
-
+    LzMinMass = cms.untracked.double(1.016),
+    LzMaxMass = cms.untracked.double(1.216),
     LbMinVtxCl = cms.untracked.double(0.01), 
     LbMinMass = cms.untracked.double(3.0), # [GeV/c2] 
     LbMaxMass = cms.untracked.double(8.0), # [GeV/c2]  lambdaB mass = 5.6195 GeV 
@@ -213,5 +210,5 @@ process.patDefaultSequence.remove(process.selectedPatJets)
 process.patDefaultSequence.remove(process.cleanPatJets)
 process.patDefaultSequence.remove(process.countPatJets)
 
-process.p = cms.Path(process.patDefaultSequence * process.generalV0Candidates * process.ntuple)
-#process.p = cms.Path(process.patDefaultSequence * process.ntuple)
+#process.p = cms.Path(process.patDefaultSequence * process.generalV0Candidates * process.ntuple)
+process.p = cms.Path(process.patDefaultSequence * process.ntuple)
