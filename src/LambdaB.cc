@@ -1070,16 +1070,17 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
   bool passed;
   double DCAmumBS, DCAmumBSErr, DCAmupBS, DCAmupBSErr;
   double mumutrk_R, mumutrk_Z, DCAmumu;
-  double trk_R, trk_Z, trk_DCA;
+  ///double trk_R, trk_Z, trk_DCA;
   reco::TransientTrack refitMupTT, refitMumTT;
   double mu_mu_vtx_cl, mu_mu_pt, mu_mu_mass, mu_mu_mass_err;
   double MuMuLSBS, MuMuLSBSErr;
   double MuMuCosAlphaBS, MuMuCosAlphaBSErr;
 
   double trk_pt;
-  double lz_mass; 
+  //double lz_mass; 
   //double lzbar_mass;
-  double lb_vtx_chisq, lb_vtx_cl, lb_mass, lbbar_mass;
+  //double lb_vtx_chisq, lb_vtx_cl, lb_mass;
+  //double lbbar_mass;
   double DCALzTrkBS, DCALzTrkBSErr;
   vector<reco::TrackRef> LambdaDaughterTracks;
   RefCountedKinematicTree vertexFitTree, barVertexFitTree ;
@@ -1152,7 +1153,8 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
       histos[h_mumulxybs]->Fill(MuMuLSBS/MuMuLSBSErr);
       histos[h_mumucosalphabs]->Fill(MuMuCosAlphaBS);
       if ( !passed) continue;
-  
+
+
       //------------------
       //  loop 3: track-
       //------------------
@@ -1192,6 +1194,7 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 	  passed = hasGoodTrackDcaBs(theTrackpTT, DCALzTrkBS, DCALzTrkBSErr);
 	  if (!passed) continue;
 
+	  /*
 	  // check goodness of two tracks closest approach and the 3D-DCA
 	  if (! calClosestApproachTracks(theTrackpTT, theTrackmTT,
 					 trk_R, trk_Z, trk_DCA)) continue ;
@@ -1199,10 +1202,12 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 
 	  // check two tracks vertex for Lamba0
 	  if ( ! hasGoodLzVertex(theTrackmTT, theTrackpTT, lz_mass) ) continue;
+
 	  if ( lz_mass < LzMinMass_ || lz_mass > LzMaxMass_ ) continue;
 
 	  // check two tracks vertex for Lambda0bar
 	  if ( ! hasGoodLzVertex(theTrackpTT, theTrackmTT, lz_mass) ) continue;
+
 	  if ( lz_mass < LzMinMass_ || lz_mass > LzMaxMass_ ) continue;
 
 	  // fit LambdaB vertex  mu- mu+ pi- p+
@@ -1215,13 +1220,16 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 
 	  // fit Bdbar vertex mu- mu+ pi+ p-
 	  if ( ! hasGoodLbVertex(muTrackmTT, muTrackpTT, theTrackpTT, theTrackmTT,
-				 lb_vtx_chisq, lb_vtx_cl, lbbar_mass,
+				 lb_vtx_chisq, lb_vtx_cl, lb_mass,     // change to lbbar_mass
 				 barVertexFitTree) ) continue;
 
 	  if ( lb_vtx_cl < LbMinVtxCl_ ||
-	       lbbar_mass < LbMinMass_ || lbbar_mass > LbMaxMass_ ) continue;
+	       lb_mass < LbMinMass_ || lb_mass > LbMaxMass_ ) continue;
+
+	  */
 
 	  nb++;
+
 	  // save the tree variables
 	  saveDimuVariables(DCAmumBS, DCAmumBSErr, DCAmupBS, DCAmupBSErr,
 			    mumutrk_R, mumutrk_Z, DCAmumu, mu_mu_vtx_cl,
@@ -1230,14 +1238,16 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 			    mu_mu_mass, mu_mu_mass_err);
 	  
 	  saveSoftMuonVariables(*iMuonM, *iMuonP, muTrackm, muTrackp);
+
+	  /*
 	  trkpt->push_back(trk_pt);
 	  trkdcabs->push_back(DCALzTrkBS);
 	  trkdcabserr->push_back(DCALzTrkBSErr);
 	  lzmass->push_back(lz_mass);
 	  lbvtxcl->push_back(lb_vtx_cl);
-	  //lbmass->push_back(lb_mass);
+	  lbmass->push_back(lb_mass);
 	  //lbbarmass->push_back(lbbar_mass);
-	  
+	  */
 
 
 	} // track+ loop
