@@ -186,11 +186,15 @@ process.ntuple = cms.EDAnalyzer(
     TrkMaxR = cms.untracked.double(110.0), # [cm] ==> size of tracker volume in radial direction
     TrkMaxZ = cms.untracked.double(280.0), # [cm] ==> size of tracker volume in Z direction
 
-    LzMinMass = cms.untracked.double(1.016),
-    LzMaxMass = cms.untracked.double(1.216),
+    DiHadMaxDca = cms.untracked.double(0.1),
+
+    # Lambda0 mass = 1115.683 +/- 0.006 MeV, considered +/-200 MeV around Lambda0 mass
+    LzMinMass = cms.untracked.double(0.916),
+    LzMaxMass = cms.untracked.double(1.316),
+    LzMinVtxCl = cms.untracked.double(0.01),
     LbMinVtxCl = cms.untracked.double(0.01), 
-    LbMinMass = cms.untracked.double(3.0), # [GeV/c2] 
-    LbMaxMass = cms.untracked.double(8.0), # [GeV/c2]  lambdaB mass = 5.6195 GeV 
+    LbMinMass = cms.untracked.double(4.0), # [GeV/c2] 
+    LbMaxMass = cms.untracked.double(7.0), # [GeV/c2]  lambdaB mass = 5.6195 GeV 
 
 )
 

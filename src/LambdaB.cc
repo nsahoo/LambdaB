@@ -1191,7 +1191,7 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 	  if (! calClosestApproachTracks(theTrackpTT, theTrackmTT,
 					 trk_R, trk_Z, trk_DCA)) continue ;
 
-	  if ( (trk_R > TrkMaxR_) || (trk_Z > TrkMaxZ_) || (trk_DCA > DiHadMaxDca_) ) continue;
+	  if ( (trk_R > TrkMaxR_) || (trk_Z > TrkMaxZ_) ) continue;
 
 	  //printf("track- pt value: %6.4f , track+ pt value: %6.4f \n", trkM_pt, trkP_pt);
 
@@ -1199,9 +1199,12 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 	  // check two tracks vertex for Lamba0  (always assign proton mass to the track w/ higher momentum)
 	  //if (trkP_pt > trkM_pt){
 	  if ( ! hasGoodLzVertex(theTrackmTT, theTrackpTT, lz_vtx_cl, lz_mass) ) continue;
+	  if ( (lz_mass < LzMinMass_) || (lz_mass > LzMaxMass_) ) return false;
+
 	  // check two tracks vertex for Lambda0bar
 	  //}else{
 	  if ( ! hasGoodLzVertex(theTrackpTT, theTrackmTT, lz_vtx_cl, lz_mass) ) continue;
+	  if ( (lz_mass < LzMinMass_) || (lz_mass > LzMaxMass_) ) return false;
 	    //}
 
 	  histos[h_lzmass]->Fill(lz_mass);
@@ -1746,7 +1749,7 @@ LambdaB::hasGoodLzVertex(const reco::TransientTrack pionTT,
   lz_mass = lz_KP->currentState().mass();
 
   //if ( (lz_vtx_cl < LzMinVtxCl_) || (lz_mass < LzMinMass_) || (lz_mass > LzMaxMass_) ) return false;
-  if ( (lz_mass < LzMinMass_) || (lz_mass > LzMaxMass_) ) return false;
+  //if ( (lz_mass < LzMinMass_) || (lz_mass > LzMaxMass_) ) return false;
 
   //printf("lambda0 vtxcl: %6.4f , mass: %6.4f \n", lz_vtx_cl, lz_mass);
 
