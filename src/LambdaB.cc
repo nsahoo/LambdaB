@@ -120,6 +120,7 @@ enum HistName{
   h_lbvtxcl,
 
   h_lzmass,   // lb = LambdaB, lz = Lambda0
+  h_lzvtxcl,
   h_lbmass,
 
   kHistNameSize
@@ -149,6 +150,7 @@ HistArgs hist_args[kHistNameSize] = {
   {"h_lbvtxchisq", "#Lambda_{b} decay vertex #chi^{2}", 100, 0, 1000},
   {"h_lbvtxcl", "#Lambda_{b} decay vertex CL", 100, 0, 1},
   {"h_lzmass", "#Lambda^{0} mass; M(#Lambda^{0}) [GeV/c^{2}]", 100, 0, 20},   // Lambda0 mass
+  {"h_lzvtxcl", "#Lambda^{0} decay vertex CL", 100, 0, 1},
   {"h_lbmass", "#Lambda_{b} mass; M(#Lambda_{b}) [GeV/c^{2}]", 100, 0, 20},   // LambdaB mass
 
 };
@@ -1055,9 +1057,9 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
   double lz_mass; 
   //double lzbar_mass;
   double lz_vtx_cl;
-  double lb_vtx_chisq; 
-  double lb_vtx_cl;
-  double lb_mass;
+  //double lb_vtx_chisq; 
+  //double lb_vtx_cl;
+  //double lb_mass;
   //double lbbar_mass;
   double DCALzTrkBS, DCALzTrkBSErr;
   vector<reco::TrackRef> LambdaDaughterTracks;
@@ -1208,15 +1210,16 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 	    //}
 
 	  histos[h_lzmass]->Fill(lz_mass);
+	  histos[h_lzvtxcl]->Fill(lz_vtx_cl);
 
 
-
+	  /*
 	  // fit LambdaB vertex  mu- mu+ pi- p+
 	  if ( ! hasGoodLbVertex(muTrackmTT, muTrackpTT, theTrackmTT, theTrackpTT,
 				 lb_vtx_chisq, lb_vtx_cl, lb_mass,
 				 vertexFitTree) ) continue;
 
-	  if ( (lb_vtx_cl < LbMinVtxCl_) || (lb_mass < LbMinMass_) || (lb_mass > LbMaxMass_) ) continue;
+	  if ( (lb_mass < LbMinMass_) || (lb_mass > LbMaxMass_) ) continue;
 
 
 	  // fit Bdbar vertex mu- mu+ pi+ p-
@@ -1224,10 +1227,11 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 				 lb_vtx_chisq, lb_vtx_cl, lb_mass,     // change to lbbar_mass
 				 barVertexFitTree) ) continue;
 
-	  if ( (lb_vtx_cl < LbMinVtxCl_) || (lb_mass < LbMinMass_) || (lb_mass > LbMaxMass_) ) continue;
+	  if ( (lb_mass < LbMinMass_) || (lb_mass > LbMaxMass_) ) continue;
+	  */
 
-
-	  histos[h_lbmass]->Fill(lb_mass);
+	  //histos[h_lbmass]->Fill(lb_mass);
+	  //histos[h_lbvtxcl]->Fill(lb_vtx_cl);
 
 
 
@@ -1249,6 +1253,7 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 	  */	  
 
 	  lzmass->push_back(lz_mass);
+	  lzvtxcl->push_back(lz_vtx_cl);
 	  //lbmass->push_back(lb_mass);
 	  //lbvtxcl->push_back(lb_vtx_cl); 
 
