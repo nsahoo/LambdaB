@@ -1819,8 +1819,8 @@ LambdaB::hasGoodLbMass(RefCountedKinematicTree vertexFitTree,
 bool
 LambdaB::hasGoodLbVertex(const edm::Event& iEvent, const reco::TrackRef mu1Track, const reco::TrackRef mu2Track,
 			 const vector<reco::TrackRef> LambdaDaughterTracks, double &lz_vtx_cl, double &lz_mass,
-			 double & lb_vtx_chisq, double & lb_vtx_cl, double & lb_mass,
-			 RefCountedKinematicTree & vertexFitTree, RefCountedKinematicTree & lzVertexFitTree )
+			 double &lb_vtx_chisq, double &lb_vtx_cl, double &lb_mass,
+			 RefCountedKinematicTree &vertexFitTree, RefCountedKinematicTree &lzVertexFitTree )
 
 {
 
@@ -1861,6 +1861,7 @@ LambdaB::hasGoodLbVertex(const edm::Event& iEvent, const reco::TrackRef mu1Track
   cout << "Lb decay vertex found: " << boolalpha << lb_KV->vertexIsValid() << endl;
 
   lb_vtx_chisq = lb_KV->chiSquared();
+  cout << "lambdab vertex chi2: " << lb_vtx_chisq << endl;
 
   /*
   if ( LbDecayVertexMC->chiSquared()<0
@@ -1873,11 +1874,20 @@ LambdaB::hasGoodLbVertex(const edm::Event& iEvent, const reco::TrackRef mu1Track
                                     (double)(lb_KV->degreesOfFreedom()));
   */
 
+  /*
+  if ( lb_KV->chiSquared()<0 || lb_KV->chiSquared()>1000 ) {
+
+    if(lb_KV->chiSquared()<0) cout << "negative chi2 = " << lb_KV->chiSquared() << endl;
+    return false;
+  }
+  */
+
 
   lb_vtx_cl = TMath::Prob((double)lb_KV->chiSquared(),
 			  int(rint(lb_KV->degreesOfFreedom())));
   
   printf("Lb vtxcl: %8.6f \n", lb_vtx_cl);
+  cout << "lambdab vtxcl: " << "\t" << lb_vtx_cl << endl;
 
   //if ( lb_vtx_cl < LbMinVtxCl_ ) return false;
   
