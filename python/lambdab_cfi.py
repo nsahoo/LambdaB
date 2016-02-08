@@ -58,7 +58,7 @@ process.generalV0Candidates = cms.EDProducer(
 
     # These bools decide whether or not to reconstruct
     #  specific V0 particles
-    selectKshorts = cms.bool(False), #true 
+    selectKshorts = cms.bool(True), #true 
     selectLambdas = cms.bool(True),
 
     # Recommend leaving this one as is.
@@ -84,8 +84,8 @@ process.generalV0Candidates = cms.EDProducer(
     #   Number of valid hits on track >=
     tkNhitsCut = cms.int32(6),
     #   Track impact parameter significance >
-    #impactParameterSigCut = cms.double(2.),
-    impactParameterSigCut = cms.double(0.5),
+    impactParameterSigCut = cms.double(2.),
+#    impactParameterSigCut = cms.double(0.5),
     # We calculate the PCA of the tracks quickly in RPhi, extrapolating
     # the z position as well, before vertexing.  Used in the following 2 cuts:
     #   m_pipi calculated at PCA of tracks <
@@ -106,8 +106,8 @@ process.generalV0Candidates = cms.EDProducer(
     #   (UNUSED)
     lVtxCut = cms.double(0.0),
     #   Radial vertex significance >
-    #vtxSignificance2DCut = cms.double(15.0),
-    vtxSignificance2DCut = cms.double(5.0),
+    vtxSignificance2DCut = cms.double(15.0),
+#    vtxSignificance2DCut = cms.double(5.0),
     #   3D vertex significance using primary vertex
     #   (UNUSED)
     vtxSignificance3DCut = cms.double(0.0),
@@ -186,10 +186,6 @@ process.ntuple = cms.EDAnalyzer(
     TrkMinDcaSigBs = cms.untracked.double(0.1), # 0.8 hadron DCA/sigma w/respect to BS (=>changed Max to Min)
     TrkMaxR = cms.untracked.double(110.0), # [cm] ==> size of tracker volume in radial direction
     TrkMaxZ = cms.untracked.double(280.0), # [cm] ==> size of tracker volume in Z direction
-
-
-    ##KstarMinMass = cms.untracked.double(0.74), # [GeV/c2]  - 3 sigma of the width
-    ##KstarMaxMass = cms.untracked.double(1.04), # [GeV/c2]  + 3 sigma of the width
 
     LbMinVtxCl = cms.untracked.double(0.01), 
     LbMinMass = cms.untracked.double(3.0), # [GeV/c2] 

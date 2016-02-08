@@ -25,14 +25,14 @@ print "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
 import FWCore.ParameterSet.Config as cms
 from lambdab_cfi import process 
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10000) )
 
 process.source = cms.Source("PoolSource",
 
 #         fileNames = cms.untracked.vstring('/store/mc/Summer12_DR53X/LambdaBToPsiMuMu_2MuPtEtaFilter_8TeV-pythia6-evtgen/AODSIM/PU_S10_START53_V7A-v2/0000/003E1158-0AE3-E111-9A35-00A0D1EE8EE0.root')
         fileNames = cms.untracked.vstring(
-#'/store/mc/Summer11LegDR/LambdaBToLambdaMuMu_EtaPtFilter_7TeV-pythia6-evtgen/AODSIM/PU_S13_START53_LV6-v1/00000/149B747C-D2CA-E311-B850-001E6739726F.root')
-'/store/mc/Summer11LegDR/LambdaBToLambdaJpsi_EtaPtFilter_7TeV-pythia6-evtgen/AODSIM/PU_S13_START53_LV6-v1/00000/04B659AC-DFCA-E311-931B-001E67397F2B.root')
+'/store/mc/Summer11LegDR/LambdaBToLambdaMuMu_EtaPtFilter_7TeV-pythia6-evtgen/AODSIM/PU_S13_START53_LV6-v1/00000/149B747C-D2CA-E311-B850-001E6739726F.root')
+#'/store/mc/Summer11LegDR/LambdaBToLambdaJpsi_EtaPtFilter_7TeV-pythia6-evtgen/AODSIM/PU_S13_START53_LV6-v1/00000/04B659AC-DFCA-E311-931B-001E67397F2B.root')
                         )
 
 if (run2012not2011 == True):
