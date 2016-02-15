@@ -10,12 +10,15 @@
  Implementation:
      [Notes on implementation]
 */
-//*************************************************************************
-//*           Ntuplizer code for /\b -> /\(->p+pi) mu+ mu-                *
-//*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> *
-//*   original author:  Niladribihari Sahoo,42 3-024,+41227662373,        *
-//*      date created:  Tue Jan 11 23:43:26 CET 2015                      *
-//*************************************************************************
+//********************************************************************************
+//*                Ntuplizer code for /\b -> /\(->p+pi) mu+ mu-                  *
+//*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*
+//*        orig. auth:  Niladribihari Sahoo,42 3-024,+41227662373,               *
+//*      date created:  Tue Dec  8 23:43:26 CET 2015                             *
+//*          modified:  dec 21 (fixed vertexing error)                           *
+//*          modified:  dec 31 (fixed track assign mass issue)                   *
+//*             added:  jan 4 (added vars to save Lambda0 dau's charge info      *
+//********************************************************************************
 // $Id$
 //
 //
@@ -42,6 +45,8 @@
 
 #include "DataFormats/Common/interface/Handle.h"
 #include "DataFormats/Common/interface/TriggerResults.h"
+#include "DataFormats/Common/interface/Ref.h"
+#include "DataFormats/Common/interface/RefToBase.h"
 #include "DataFormats/BeamSpot/interface/BeamSpot.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
@@ -114,13 +119,12 @@ enum HistName{
   h_mumulxybs,
 
   h_mumucosalphabs,
-  h_trkpt,
-  h_trkdcasigbs,
+  //h_trkpt,
+  //h_trkdcasigbs,
   h_lbvtxchisq,
   h_lbvtxcl,
 
   h_lzmass,   // lb = LambdaB, lz = Lambda0
-  h_lzvtxcl,
   h_lbmass,
 
   kHistNameSize
@@ -145,12 +149,11 @@ HistArgs hist_args[kHistNameSize] = {
    100, 2, 20},
   {"h_mumulxybs", "#mu^{+}#mu^{-} Lxy/#sigma beam spot", 100, 0, 100},
   {"h_mumucosalphabs", "#mu^{+}#mu^{-} cos#alpha beam spot", 100, 0, 1},
-  {"h_trkpt", "Pion track pT; pT [GeV]", 100, 0, 20},
-  {"h_trkdcasigbs", "Pion track DCA/#sigma beam spot; DCA/#sigma", 1000, 0, 100},
+  //{"h_trkpt", "Pion track pT; pT [GeV]", 100, 0, 20},
+  //{"h_trkdcasigbs", "Pion track DCA/#sigma beam spot; DCA/#sigma", 1000, 0, 100},
   {"h_lbvtxchisq", "#Lambda_{b} decay vertex #chi^{2}", 100, 0, 1000},
   {"h_lbvtxcl", "#Lambda_{b} decay vertex CL", 100, 0, 1},
   {"h_lzmass", "#Lambda^{0} mass; M(#Lambda^{0}) [GeV/c^{2}]", 100, 0, 20},   // Lambda0 mass
-  {"h_lzvtxcl", "#Lambda^{0} decay vertex CL", 100, 0, 1},
   {"h_lbmass", "#Lambda_{b} mass; M(#Lambda_{b}) [GeV/c^{2}]", 100, 0, 20},   // LambdaB mass
 
 };
@@ -213,35 +216,35 @@ class LambdaB : public edm::EDAnalyzer {
                                 const reco::TransientTrack,
                                 double&, double &, double &);
 
-  ///bool hasGoodLzVertex(const edm::Event&, const vector<reco::TrackRef>, RefCountedKinematicTree &);
+  bool hasGoodLzVertex(const edm::Event&, const vector<reco::TrackRef>, RefCountedKinematicTree &, double &);
 
-  bool hasGoodLzVertex(const reco::TransientTrack, const reco::TransientTrack, double &, double &);
-
-  bool hasGoodLzVertexMKC(const edm::Event&, const vector<reco::TrackRef>, RefCountedKinematicTree &);
+  bool hasGoodLzVertexMKC(const edm::Event&, const vector<reco::TrackRef>, RefCountedKinematicTree &, double &);
 
   bool hasGoodMuonDcaBs (const reco::TransientTrack, double &, double &);
-  bool hasGoodTrack(const edm::Event&, const pat::GenericParticle, double &);
   bool hasGoodTrackDcaBs (const reco::TransientTrack, double &, double &);
   bool hasGoodTrackDcaPoint (const reco::TransientTrack, const GlobalPoint,
                              double, double &, double &);
 
-  ///bool hasGoodLbMass(RefCountedKinematicTree, double &);  // LambdaB mass
+  bool hasGoodLbMass(RefCountedKinematicTree, double &);  // LambdaB mass
 
-  bool hasGoodLbVertex(const reco::TransientTrack, const reco::TransientTrack,
-		       const reco::TransientTrack, const reco::TransientTrack,
-		       double &, double &, double &, RefCountedKinematicTree &);
-
+  bool hasGoodLbVertex(const edm::Event&, const reco::TrackRef, const reco::TrackRef,                       // LambdaB vertex
+                       const vector<reco::TrackRef>, double &, double &, double &, double &,     
+		       RefCountedKinematicTree & , RefCountedKinematicTree & );
 
   bool hasGoodMuMuVertex (const reco::TransientTrack, const reco::TransientTrack,
                           reco::TransientTrack &, reco::TransientTrack &,
                           double &, double &, double &, double &, double &,
                           double &, double &, double &);
 
+  bool hasGoodTrack(const edm::Event&, const pat::GenericParticle, double &);
+
   bool hasPrimaryVertex(const edm::Event &);
 
   void hltReport(const edm::Event&);
 
   bool matchMuonTrack (const edm::Event&, const reco::TrackRef);
+  //bool matchMuonTrack (const edm::Event&, const edm::RefToBase<Track>&);
+  
   bool matchMuonTracks (const edm::Event&, const vector<reco::TrackRef>);
   //bool matchLzTrack (const edm::Event&, const reco::TrackRef, double &, double &);     // added on dec 22 , 2015
   void matchLzTrack (const edm::Event&, const reco::TrackRef, double &, double &);
@@ -267,7 +270,7 @@ class LambdaB : public edm::EDAnalyzer {
       // ----------member data ---------------------------
 
 
-  // --- begin input from python file ---                                                                                                                     
+  // --- begin input from python file ---                                                                                                               
   string OutputFileName_;
   bool BuildLbToLzMuMu_;
 
@@ -309,7 +312,7 @@ class LambdaB : public edm::EDAnalyzer {
 
   //---------------------
   // pre-selection cuts  
-  //---------------------                                                                                                                                       
+  //---------------------                                                                                                                          
   double MuonMinPt_;
   double MuonMaxEta_;
   double MuonMaxDcaBs_;
@@ -324,17 +327,15 @@ class LambdaB : public edm::EDAnalyzer {
   double MuMuMaxInvMass_;
   double MuMuMinLxySigmaBs_;
   double MuMuMinCosAlphaBs_;
-  double DiHadMaxDca_;
-  double LzMinMass_;
-  double LzMaxMass_;
-  double LzMinVtxCl_;
+  //double LzMinMass_;
+  //double LzMaxMass_;
   double LbMinVtxCl_;
   double LbMinMass_;
   double LbMaxMass_;
 
   //--------------------
   // Across the event   
-  //--------------------                                                                                                                                      
+  //--------------------                                                                                                                         
   map<string, string> mapTriggerToLastFilter_;
   reco::BeamSpot beamSpot_;
   edm::ESHandle<MagneticField> bFieldHandle_;
@@ -352,7 +353,7 @@ class LambdaB : public edm::EDAnalyzer {
 
   //----------
   // dimuon   
-  //----------                                                                                                                                                     
+  //----------                                                                                                                                      
   vector<double> *mumdcabs, *mumdcabserr, *mumpx, *mumpy, *mumpz;
   vector<double> *mupdcabs, *mupdcabserr, *muppx, *muppy, *muppz;
   vector<double> *mumutrkr, *mumutrkz , *mumudca;
@@ -362,7 +363,7 @@ class LambdaB : public edm::EDAnalyzer {
 
   //-----------------------
   // soft muon variables   
-  //-----------------------                                                                                                                                    
+  //-----------------------                                                                                                                       
   vector<bool>   *mumisgoodmuon, *mupisgoodmuon ;
   vector<int>    *mumnpixhits, *mupnpixhits, *mumnpixlayers, *mupnpixlayers;
   vector<int>    *mumntrkhits, *mupntrkhits, *mumntrklayers, *mupntrklayers;
@@ -372,15 +373,14 @@ class LambdaB : public edm::EDAnalyzer {
   vector<double> *mumpt, *muppt, *mumeta, *mupeta;
 
 
-  //vector<int> *trkchg; // +1 for pi+, -1 for pi-                                                                                                                
+  //vector<int> *trkchg; // +1 for pi+, -1 for pi-                                                                                  
   //vector<double> *trkpx, *trkpy, *trkpz, *trkpt;
-  vector<double> *trkpt;
   vector<double> *trkdcabs, *trkdcabserr;
 
 
   //--------------------
   // Lambda0  
-  //--------------------                                                                                                                                       
+  //--------------------                                                                                                              
   vector<int> *prchg;
   vector<double> *prpx, *prpy, *prpz ;
   vector<double>  *prd0, *prd0err ;
@@ -401,7 +401,7 @@ class LambdaB : public edm::EDAnalyzer {
 
   //---------------
   // anti-LambdaB
-  //---------------                                                                                                                                                
+  //---------------                                                                                                                              
   vector<double> *lbbarmass, *lbbarmasserr;
 
   //---------
@@ -427,7 +427,7 @@ class LambdaB : public edm::EDAnalyzer {
 
   //-----------------------
   // variables to monitor  
-  //-----------------------                                                                                                                                    
+  //-----------------------                                                                                                           
   TDatime t_begin_ , t_now_ ;
   int n_processed_, n_selected_;
 
@@ -451,7 +451,7 @@ LambdaB::LambdaB(const edm::ParameterSet& iConfig):
 
   //----------------------
   // particle properties  
-  //----------------------                                                                                                                                     
+  //----------------------                                                                                                                       
   MuonMass_(iConfig.getUntrackedParameter<double>("MuonMass")),
   MuonMassErr_(iConfig.getUntrackedParameter<double>("MuonMassErr")),
   PionMass_(iConfig.getUntrackedParameter<double>("PionMass")),
@@ -462,7 +462,7 @@ LambdaB::LambdaB(const edm::ParameterSet& iConfig):
 
   //---------
   // labels  
-  //---------                                                                                                                                                  
+  //---------                                                                                                                                   
   GenParticlesLabel_(iConfig.getParameter<edm::InputTag>("GenParticlesLabel")),
   TriggerResultsLabel_(iConfig.getParameter<edm::InputTag>("TriggerResultsLabel")),
   BeamSpotLabel_(iConfig.getParameter<edm::InputTag>("BeamSpotLabel")),
@@ -475,7 +475,7 @@ LambdaB::LambdaB(const edm::ParameterSet& iConfig):
 
   //----------------
   // gen particle   
-  //----------------                                                                                                                                          
+  //----------------                                                                                                                                   
   IsMonteCarlo_(iConfig.getUntrackedParameter<bool>("IsMonteCarlo")),
   KeepGENOnly_(iConfig.getUntrackedParameter<bool>("KeepGENOnly")),
   TruthMatchMuonMaxR_(iConfig.getUntrackedParameter<double>("TruthMatchMuonMaxR")),
@@ -485,7 +485,7 @@ LambdaB::LambdaB(const edm::ParameterSet& iConfig):
   
   //--------------------
   // pre-selection cuts 
-  //--------------------                                                                                                                                      
+  //--------------------                                                                                                                      
   MuonMinPt_(iConfig.getUntrackedParameter<double>("MuonMinPt")),
   MuonMaxEta_(iConfig.getUntrackedParameter<double>("MuonMaxEta")),
   MuonMaxDcaBs_(iConfig.getUntrackedParameter<double>("MuonMaxDcaBs")),
@@ -502,11 +502,9 @@ LambdaB::LambdaB(const edm::ParameterSet& iConfig):
   MuMuMaxInvMass_(iConfig.getUntrackedParameter<double>("MuMuMaxInvMass")),
   MuMuMinLxySigmaBs_(iConfig.getUntrackedParameter<double>("MuMuMinLxySigmaBs")),
   MuMuMinCosAlphaBs_(iConfig.getUntrackedParameter<double>("MuMuMinCosAlphaBs")),
-  DiHadMaxDca_(iConfig.getUntrackedParameter<double>("DiHadMaxDca")),
 
-  LzMinMass_(iConfig.getUntrackedParameter<double>("LzMinMass")),
-  LzMaxMass_(iConfig.getUntrackedParameter<double>("LzMaxMass")),
-  LzMinVtxCl_(iConfig.getUntrackedParameter<double>("LzMinVtxCl")),
+  //LzMinMass_(iConfig.getUntrackedParameter<double>("LzMinMass")),
+  //LzMaxMass_(iConfig.getUntrackedParameter<double>("LzMaxMass")),
   LbMinVtxCl_(iConfig.getUntrackedParameter<double>("LbMinVtxCl")),
   LbMinMass_(iConfig.getUntrackedParameter<double>("LbMinMass")),
   LbMaxMass_(iConfig.getUntrackedParameter<double>("LbMaxMass")),
@@ -525,8 +523,7 @@ LambdaB::LambdaB(const edm::ParameterSet& iConfig):
   mumdzvtx(0), mupdzvtx(0), mumtriglastfilter(0), muptriglastfilter(0),
   mumpt(0), muppt(0), mumeta(0), mupeta(0),
 
-  //trkchg(0), trkpx(0), trkpy(0), trkpz(0), 
-  trkpt(0),
+  //trkchg(0), trkpx(0), trkpy(0), trkpz(0), trkpt(0),
   trkdcabs(0), trkdcabserr(0),
 
   prchg(0),
@@ -603,7 +600,6 @@ LambdaB::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   histos[h_events]->Fill(0);
 
   if (IsMonteCarlo_) saveGenInfo(iEvent);
-
 
   hltReport(iEvent);
 
@@ -710,9 +706,8 @@ LambdaB::beginJob()
   tree_->Branch("trkpx", &trkpx);
   tree_->Branch("trkpy", &trkpy);
   tree_->Branch("trkpz", &trkpz);
-  */
   tree_->Branch("trkpt", &trkpt);
-  
+  */
   tree_->Branch("trkdcabs", &trkdcabs);
   tree_->Branch("trkdcabserr", &trkdcabserr);
   tree_->Branch("prchg", &prchg);
@@ -895,8 +890,7 @@ LambdaB::clearVariables(){
   mumpt->clear(); muppt->clear();
   mumeta->clear(); mupeta->clear();
 
-  //trkchg->clear(); trkpx->clear(); trkpy->clear(); trkpz->clear(); 
-  trkpt->clear();
+  //trkchg->clear(); trkpx->clear(); trkpy->clear(); trkpz->clear(); trkpt->clear();
   trkdcabs->clear(); trkdcabserr->clear();
 
   prchg->clear();
@@ -1020,6 +1014,27 @@ LambdaB::hasPrimaryVertex(const edm::Event& iEvent)
   return true;
 }
 
+/*
+bool
+LambdaB::hasGoodTrack(const edm::Event& iEvent,
+			   const pat::GenericParticle iTrack,
+			   double & trk_pt)
+{
+  reco::TrackRef theTrackRef = iTrack.track();
+  if ( theTrackRef.isNull() ) return false;
+
+  // veto muon tracks                                                                                                                       
+  if ( matchMuonTrack(iEvent, theTrackRef) ) return false;
+
+  // check the track kinematics                                                                                                 
+  trk_pt = theTrackRef->pt();
+
+  if ( theTrackRef->pt() < TrkMinPt_ ) return false;
+
+  return true;
+}
+*/
+
 
 //-----------------------------------------------------------------------------------
 // main function to build/reconstruct LambdaB --> Lambda0 mu+ mu- candidate
@@ -1033,38 +1048,35 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
   iEvent.getByLabel(MuonLabel_, patMuonHandle);
   if( patMuonHandle->size() < 2 ) return false;
 
-  /*
   edm::Handle<reco::VertexCompositeCandidateCollection> theLambdas;
   iEvent.getByLabel(LambdaLabel_, theLambdas);
   if ( theLambdas->size() <= 0) return false;
-  */
 
-  edm::Handle< vector<pat::GenericParticle> >thePATTrackHandle;
-  iEvent.getByLabel(TrackLabel_, thePATTrackHandle);
+
+  //edm::Handle< vector<pat::GenericParticle> >thePATTrackHandle;
+  //iEvent.getByLabel(TrackLabel_, thePATTrackHandle);
 
 
   bool passed;
   double DCAmumBS, DCAmumBSErr, DCAmupBS, DCAmupBSErr;
   double mumutrk_R, mumutrk_Z, DCAmumu;
-  double trk_R, trk_Z, trk_DCA;
+
   reco::TransientTrack refitMupTT, refitMumTT;
   double mu_mu_vtx_cl, mu_mu_pt, mu_mu_mass, mu_mu_mass_err;
   double MuMuLSBS, MuMuLSBSErr;
   double MuMuCosAlphaBS, MuMuCosAlphaBSErr;
 
-  double trkM_pt, trkP_pt;
-  double trk_pt;
-  double lz_mass; 
-  //double lzbar_mass;
-  double lz_vtx_cl;
-  double lb_vtx_chisq; 
-  double lb_vtx_cl;
-  double lb_mass;
-  //double lbbar_mass;
-  double DCALzTrkBS, DCALzTrkBSErr;
-  vector<reco::TrackRef> LambdaDaughterTracks;
+  //double lz_vtx_cl;
+  //  double lz_mass, lzbar_mass; 
+  //double lb_vtx_chisq, lb_vtx_cl, lb_mass;
+  //  double lbbar_mass;
+  //  double DCALzTrkBS, DCALzTrkBSErr;
+
+
+  //vector<reco::TrackRef> LambdaDaughterTracks;
+  vector< edm::RefToBase < reco::Track > > tracks;
   RefCountedKinematicTree vertexFitTree, barVertexFitTree ;
-  ///RefCountedKinematicTree LzvertexFitTree ;
+  RefCountedKinematicTree lzVertexFitTree ;
 
   
   // --------------------                               
@@ -1076,6 +1088,9 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
     reco::TrackRef muTrackm = iMuonM->innerTrack();
     if ( muTrackm.isNull() ) continue;
 
+    //printf("pt(mu-): %8.6f \n", muTrackm->pt());
+    //cout << "pt(mu-): " << muTrackm->pt() << endl;
+
     histos[h_mupt]->Fill(muTrackm->pt());
     histos[h_mueta]->Fill(muTrackm->eta());
 
@@ -1083,44 +1098,43 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
          (muTrackm->pt() < MuonMinPt_) ||
          (fabs(muTrackm->eta()) > MuonMaxEta_)) continue;
 
-    // check mu- DCA to beam spot                                                                                                                                 
+    // check mu- DCA to beam spot                                                                                                                    
     const reco::TransientTrack muTrackmTT(muTrackm, &(*bFieldHandle_));
     passed = hasGoodMuonDcaBs(muTrackmTT, DCAmumBS, DCAmumBSErr) ;
-    ////cout << "hasGoodMuon(-)DcaBs: " << boolalpha << passed << endl;
     histos[h_mumdcabs]->Fill(DCAmumBS);
     if ( ! passed ) continue;
 
     // --------------------- 
     // loop 2: mu+                                                                                                                      
-    // ---------------------                                                                                                                                  
+    // ---------------------                                                                                                               
     for (vector<pat::Muon>::const_iterator iMuonP = patMuonHandle->begin();
          iMuonP != patMuonHandle->end(); iMuonP++){
 
       reco::TrackRef muTrackp = iMuonP->innerTrack();
-      if ( muTrackp.isNull() ||
-           (muTrackp->charge() != 1) ||
+      if ( muTrackp.isNull() ) continue;
+
+      //printf("pt(mu+): %8.6f \n", muTrackp->pt());
+      //cout << "pt(mu+): "<< muTrackp->pt() << endl;
+
+      if ( (muTrackp->charge() != 1) ||
            (muTrackp->pt() < MuonMinPt_) ||
            (fabs(muTrackp->eta()) > MuonMaxEta_)) continue;
 
       // check mu+ DCA to beam spot                                                                                                             
       const reco::TransientTrack muTrackpTT(muTrackp, &(*bFieldHandle_));
       passed = hasGoodMuonDcaBs(muTrackpTT, DCAmupBS, DCAmupBSErr);
-      ////cout << "hasGoodMuon(+)DcaBs: " << boolalpha << passed << endl;
       if ( ! passed ) continue;
 
 
       // check goodness of muons closest approach and the 3D-DCA                                                                                             
-      // passed = hasGoodClosestApproachTracks(muTrackpTT, muTrackmTT,                                                                                              
+      // passed = hasGoodClosestApproachTracks(muTrackpTT, muTrackmTT,                                                                            
       //                                            mumutrk_R, mumutrk_Z, DCAmumu);                                                                      
       if ( !calClosestApproachTracks(muTrackpTT, muTrackmTT,
                                      mumutrk_R, mumutrk_Z, DCAmumu)) continue;
-
-      ////cout << "calClosestApproachTracks: " << boolalpha << calClosestApproachTracks(muTrackpTT, muTrackmTT, mumutrk_R, mumutrk_Z, DCAmumu) << endl;
-
       histos[h_mumutrkr]->Fill(mumutrk_R);
       histos[h_mumutrkz]->Fill(mumutrk_Z);
       histos[h_mumudca]->Fill(DCAmumu);
-      // if ( !passed ) continue;                                                                                                                              
+      // if ( !passed ) continue;                                                                                                                    
       if ( mumutrk_R > TrkMaxR_ ||
            mumutrk_Z > TrkMaxZ_ ||
            DCAmumu > MuMuMaxDca_ ) continue;
@@ -1132,182 +1146,169 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
                                  MuMuLSBS, MuMuLSBSErr,
                                  MuMuCosAlphaBS, MuMuCosAlphaBSErr);
 
-      ////cout << "hasGoodMuMuVertex: " << boolalpha << passed << endl;
-
       histos[h_mumuvtxcl]->Fill(mu_mu_vtx_cl);
       histos[h_mumupt]->Fill(mu_mu_pt);
       histos[h_mumumass]->Fill(mu_mu_mass);
       histos[h_mumulxybs]->Fill(MuMuLSBS/MuMuLSBSErr);
       histos[h_mumucosalphabs]->Fill(MuMuCosAlphaBS);
       if ( !passed) continue;
-
   
-      //------------------
-      //  loop 3: track-
-      //------------------
-      for ( vector<pat::GenericParticle>::const_iterator iTrackM
-	      = thePATTrackHandle->begin();
-	    iTrackM != thePATTrackHandle->end(); ++iTrackM ) {
+    
+      //----------------
+      // loop 3: /\0
+      //----------------
+      for ( reco::VertexCompositeCandidateCollection::const_iterator iLambda
+	      = theLambdas->begin(); iLambda != theLambdas->end(); ++iLambda) {  
 	
-	reco::TrackRef Trackm = iTrackM->track();
-	if ( Trackm.isNull() || (Trackm->charge() != -1) ) continue;
+	/*
+	LambdaDaughterTracks.push_back((dynamic_cast<const
+					reco::RecoChargedCandidate *>
+					(iLambda->daughter(0)))->track());
+	LambdaDaughterTracks.push_back((dynamic_cast<const
+					reco::RecoChargedCandidate *>
+					(iLambda->daughter(1)))->track());
+	*/
 
-	trkM_pt = Trackm->pt();
 
-	passed = hasGoodTrack(iEvent, *iTrackM, trk_pt);
-	histos[h_trkpt]->Fill(trk_pt);
+	/*
+	reco::TrackRef theDau1TrackRef = (*(dynamic_cast<const reco::RecoChargedCandidate *>
+					    (iLambda->daughter(0)))).track();
+
+	reco::TrackRef theDau2TrackRef = (*(dynamic_cast<const reco::RecoChargedCandidate *>
+                                            (iLambda->daughter(1)))).track();
+
+	if ( theDau1TrackRef.isNull() || theDau2TrackRef.isNull() ) continue;
+	*/
+
+
+	edm::RefToBase<reco::Track> t0((*(dynamic_cast<const reco::RecoChargedCandidate *>
+					  (iLambda->daughter(0)))).track());
+
+	edm::RefToBase<reco::Track> t1((*(dynamic_cast<const reco::RecoChargedCandidate *>
+					  (iLambda->daughter(1)))).track());
+
+	tracks.push_back(t0);
+	tracks.push_back(t1);
+
+	cout << "accessing the Lambda0 daus" << endl;
+
+	if ( t0.isNull() || t1.isNull() ) continue;
+	cout << "lambda0 daus found." << endl;
+	printf("pt(1st dau): %6.4f , pt(2nd dau): %6.4f \n", t0->pt(), t1->pt());
+	printf("eta(1st dau): %6.4f , eta(2nd dau): %6.4f \n", t0->eta(), t1->eta());
+	printf("charge(1st dau): %d , charge(2nd dau): %d \n", t0->charge(), t1->charge());
+
+	if (t0->pt() > t1->pt()) 
+	  printf("\n=> dau1 has larger pt than dau2\n");
+	else 
+	  printf("\n=> dau2 has larger pt than dau1\n");
+
+
+
+
+
+
+	/*
+
+	// check that the tracks of Lambda0(bar) are not *muons*
+	if ( matchMuonTracks(iEvent, LambdaDaughterTracks) ) continue;
+	printf("vetoed the muons\n");
+	*/
+
+	/*
+	passed = hasGoodLzVertex(iEvent, LambdaDaughterTracks, lzVertexFitTree, lz_vtx_cl);
 	if (!passed) continue;
-	
-	// compute track DCA to beam spot
-	const reco::TransientTrack theTrackmTT(Trackm, &(*bFieldHandle_));
-	passed = hasGoodTrackDcaBs(theTrackmTT, DCALzTrkBS, DCALzTrkBSErr);
-	histos[h_trkdcasigbs]->Fill(DCALzTrkBS/DCALzTrkBSErr);
+	printf("Lambda0 vertex found.\n");
+
+	passed = hasGoodLzVertexMKC(iEvent, LambdaDaughterTracks, lzVertexFitTree, lz_vtx_cl);
 	if (!passed) continue;
+	printf("Lambda0 vertex found w/ mass constraint.\n");
+	*/
 
-	//printf("track- pt value: %6.4f \n", trkM_pt);
+	/*    
+	// fit /\b vertex  mu- mu+ /\(pi- p+)
+	passed = hasGoodLbVertex(iEvent, muTrackm, muTrackp, LambdaDaughterTracks,
+                                 lz_vtx_cl, lb_vtx_chisq, lb_vtx_cl, lb_mass,
+                                 vertexFitTree, lzVertexFitTree );
 
-	// ---------------------------------
-	// loop 4: track+
-	// ---------------------------------
-	for ( vector<pat::GenericParticle>::const_iterator iTrackP
-		= thePATTrackHandle->begin();
-	      iTrackP != thePATTrackHandle->end(); ++iTrackP ) {
-	  
-	  reco::TrackRef Trackp = iTrackP->track();
-	  if ( Trackp.isNull() || (Trackp->charge() != 1) ) continue;
+	//histos[h_lbvtxchisq]->Fill(lb_vtx_chisq);
+        histos[h_lbvtxcl]->Fill(lb_vtx_cl);
+	histos[h_lbmass]->Fill(lb_mass);
 
-	  trkP_pt = Trackp->pt();
+	cout << "hasGoodLbVertex: " << boolalpha << passed << endl;
 
-	  passed = hasGoodTrack(iEvent, *iTrackP, trk_pt);
-	  // histos[h_trkpt]->Fill(trk_pt);
-	  if (!passed) continue;
-	  
-	  // compute track DCA to beam spot
-	  const reco::TransientTrack theTrackpTT(Trackp, &(*bFieldHandle_));
-	  passed = hasGoodTrackDcaBs(theTrackpTT, DCALzTrkBS, DCALzTrkBSErr);
-	  if (!passed) continue;
+	if ( !passed) continue;
 
-	  //printf("track+ pt value: %6.4f \n", trkP_pt);
+	*/
+
+	/*
+   	///if ( lb_vtx_cl < LbMinVtxCl_ || lb_mass < LbMinMass_ || lb_mass > LbMaxMass_ ) continue;
 
 
-	  // always assign proton to the higher momentum track
-	  if (trkP_pt > trkM_pt){
-	    //printf("+ve track is proton and -ve track is pion\n");
-	    //const reco::TransientTrack TrackprTT(Trackp, &(*bFieldHandle_));
-	    //const reco::TransientTrack TrackpiTT(Trackm, &(*bFieldHandle_));
-	    if (trkP_pt < 1 || trkM_pt < 0.3) continue;
+	  // fit /\bbar vertex mu- mu+ /\bar(pi+ p-)                                                                                                                
+	  passed = hasGoodLbVertex(iEvent, muTrackm, muTrackp, LambdaDaughterTracks,
+				   lb_vtx_chisq, lb_vtx_cl, lb_mass,
+				   barVertexFitTree, lzVertexFitTree );
 
-	  } else {
-	    //printf("-ve track is proton and +ve track is pion\n");
-	    //const reco::TransientTrack TrackprTT(Trackm, &(*bFieldHandle_));
-            //const reco::TransientTrack TrackpiTT(Trackp, &(*bFieldHandle_));
-	    if (trkP_pt < 0.3 || trkM_pt < 1) continue;
-	  }
+	  if ( !passed) continue;
+
+          if ( lb_vtx_cl < LbMinVtxCl_ || lbbar_mass < LbMinMass_ || lbbar_mass > LbMaxMass_ ) continue;
 
 
-	  //printf("trkP_pt : %6.4f, trkM_pt : %6.4f \n", trkP_pt, trkM_pt);
+	  // need to check with primaryVertex tracks ???                                                                                                           
 
-	  // check goodness of two tracks closest approach and the 3D-DCA
-	  //if (! calClosestApproachTracks(theTrackpTT, theTrackmTT, trk_R, trk_Z, trk_DCA)) continue ;
-
-	  
-	  passed = calClosestApproachTracks(theTrackpTT, theTrackmTT, trk_R, trk_Z, trk_DCA);
-
-	  if (!passed) {
-	    cout << "No closest tracks found, continue.." << endl;
-	    continue;
-	  }
-
-	  //printf("trkR: %6.4f , trkZ: %6.4f \n", trk_R, trk_Z);
-	  if ( (trk_R > TrkMaxR_) || (trk_Z > TrkMaxZ_) ) continue;
-	  //printf("trkR: %6.4f , trkZ: %6.4f \n", trk_R, trk_Z);
-	  //printf("track- pt value: %6.4f , track+ pt value: %6.4f \n", trkM_pt, trkP_pt);
-
-	 
-	  // check two tracks vertex for Lambda0  (always assign proton mass to the track w/ higher momentum)
-	  if (trkP_pt > trkM_pt){
-	    passed = hasGoodLzVertex(theTrackmTT, theTrackpTT, lz_vtx_cl, lz_mass);
-
-	  } else{
-	    passed = hasGoodLzVertex(theTrackpTT, theTrackmTT, lz_vtx_cl, lz_mass);
-
-	  }
-
-
-	  if (!passed) continue;
-	  //if ( (lz_mass < LzMinMass_) || (lz_mass > LzMaxMass_) ) continue;
-
-	  ////printf("lz mass: %6.4f \n", lz_mass);
-	  ////printf("lz vtxcl: %6.4f \n", lz_vtx_cl);
-
-
-	  histos[h_lzmass]->Fill(lz_mass);
-	  histos[h_lzvtxcl]->Fill(lz_vtx_cl);
-
-
-
-	  if (trkP_pt > trkM_pt){
-	  // fit LambdaB vertex  mu- mu+ pi- p+
-	    passed = hasGoodLbVertex(muTrackmTT, muTrackpTT, theTrackmTT, theTrackpTT, lb_vtx_chisq, lb_vtx_cl, lb_mass, vertexFitTree);
-
-	    //if ( (lb_mass < LbMinMass_) || (lb_mass > LbMaxMass_) ) continue;
-
-	  } else {
-	  // fit LambdaBbar vertex mu- mu+ pi+ p-
-	    passed = hasGoodLbVertex(muTrackmTT, muTrackpTT, theTrackpTT, theTrackmTT, lb_vtx_chisq, lb_vtx_cl, lb_mass, vertexFitTree);
-
-	  //if ( (lb_mass < LbMinMass_) || (lb_mass > LbMaxMass_) ) continue;
-
-	  }
-
-
-	  if (!passed) continue;
-
-          printf("lb mass: %6.4f \n", lb_mass);
-          printf("lb vtxcl: %6.4f \n", lb_vtx_cl);
-
-
-	  histos[h_lbvtxcl]->Fill(lb_vtx_cl);
+	  passed = hasGoodLbMass(vertexFitTree, lb_mass);
 	  histos[h_lbmass]->Fill(lb_mass);
 
-	  nb++;
+	  if (!passed) continue;
+	*/
+  
 
+          nb++;
 
-	  // save the tree variables
-	  saveDimuVariables(DCAmumBS, DCAmumBSErr, DCAmupBS, DCAmupBSErr,
-			    mumutrk_R, mumutrk_Z, DCAmumu, mu_mu_vtx_cl,
-			    MuMuLSBS, MuMuLSBSErr,
-			    MuMuCosAlphaBS, MuMuCosAlphaBSErr,
-			    mu_mu_mass, mu_mu_mass_err);
 	  
-	  saveSoftMuonVariables(*iMuonM, *iMuonP, muTrackm, muTrackp);
+          // save the tree variables                                                                                            
+          saveDimuVariables(DCAmumBS, DCAmumBSErr, DCAmupBS, DCAmupBSErr,
+                            mumutrk_R, mumutrk_Z, DCAmumu, mu_mu_vtx_cl,
+                            MuMuLSBS, MuMuLSBSErr,
+                            MuMuCosAlphaBS, MuMuCosAlphaBSErr,
+                            mu_mu_mass, mu_mu_mass_err);
 
-	 
-	  //trkpt->push_back(trk_pt);
-	  //trkdcabs->push_back(DCALzTrkBS);
-	  //trkdcabserr->push_back(DCALzTrkBSErr);
-	 
 
-	  //lzmass->push_back(lz_mass);
-	  //lzvtxcl->push_back(lz_vtx_cl);
-	  //lbmass->push_back(lb_mass);
-	  //lbvtxcl->push_back(lb_vtx_cl); 
-	 	 
-   
-	} // track+ loop
-      } // track- loop
-    } //mu+ loop
-  } //mu- loop
+          saveSoftMuonVariables(*iMuonM, *iMuonP, muTrackm, muTrackp);
+	  
+	  /*
+	  saveLzVariables(LzvertexFitTree, *iLambda);
+	  cout << "Lambda0 vars saved." << endl;
+	  
+          trkdcabs->push_back(DCALzTrkBS);
+          trkdcabserr->push_back(DCALzTrkBSErr);
+          lzmass->push_back(lz_mass);
+	  lzbarmass->push_back(lzbar_mass);
+	  lbvtxcl->push_back(lb_vtx_cl);
+	  
+          saveLbToLzMuMu(vertexFitTree);
+          saveLbVertex(vertexFitTree);
+          saveLbCosAlpha(vertexFitTree);
+          saveLbCosAlpha2d(vertexFitTree);
+          saveLbLsig(vertexFitTree);
+          saveLbCtau(vertexFitTree);
+	  */
 
+      }// close Lambda0 loop 
+    }// close mu+ loop                                                                                                                                        
+  } // close mu- loop                                                                                                                                         
 
   if ( nb > 0) {
     edm::LogInfo("myLb") << "Found " << nb << " LambdaB -> Lambda0 mu+ mu- ";
-    printf("---------------------------------------------------------------\n");
+    printf("-----------------------------------------------------------------\n");
+
     return true;
+  } else{
+    printf("-----------------------------------------------------------------\n");
+
+    return false;
   }
-
-  return false;
-
 }
 
 
@@ -1443,32 +1444,6 @@ LambdaB::hasGoodMuonDcaBs (const reco::TransientTrack muTrackTT,
 
 
 bool
-LambdaB::hasGoodTrack(const edm::Event& iEvent,
-		      const pat::GenericParticle iTrack,
-		      double & pion_trk_pt)
-{
-  reco::TrackRef theTrackRef = iTrack.track();
-  if ( theTrackRef.isNull() ) return false;
-
-  // veto muon tracks
-  if ( matchMuonTrack(iEvent, theTrackRef) ) return false;
-
-  // veto pion tracks from Kshort
-  ///if ( matchKshortTrack(iEvent, theTrackRef) ) return false;
-
-  // check the track kinematics
-  pion_trk_pt = theTrackRef->pt();
-
-  if ( theTrackRef->pt() < TrkMinPt_ ) return false;
-
-  return true;
-}
-
-
-
-
-
-bool
 LambdaB::hasGoodTrackDcaBs (const reco::TransientTrack TrackTT,
                                  double &DcaBs, double &DcaBsErr)
 {
@@ -1503,10 +1478,10 @@ LambdaB::hasGoodTrackDcaPoint (const reco::TransientTrack track,
 
 bool
 LambdaB::calClosestApproachTracks (const reco::TransientTrack trackpTT,
-                                   const reco::TransientTrack trackmTT,
-                                   double & trk_R,
-                                   double & trk_Z,
-                                   double & trk_DCA)
+                                        const reco::TransientTrack trackmTT,
+                                        double & trk_R,
+                                        double & trk_Z,
+                                        double & trk_DCA)
 {
   ClosestApproachInRPhi ClosestApp;
   ClosestApp.calculate(trackpTT.initialFreeState(),
@@ -1655,6 +1630,36 @@ LambdaB::matchMuonTrack (const edm::Event& iEvent,
 }
 
 
+
+ /*
+bool
+LambdaB::matchMuonTrack (const edm::Event& iEvent,
+                         const edm::RefToBase<Track>& theTrackRef)
+{
+  if ( theTrackRef.isNull() ) return false;
+
+  edm::Handle< vector<pat::Muon> > thePATMuonHandle;
+  iEvent.getByLabel(MuonLabel_, thePATMuonHandle);
+
+  edm::RefToBase<Track> muTrackRef;
+  for (vector<pat::Muon>::const_iterator iMuon = thePATMuonHandle->begin();
+       iMuon != thePATMuonHandle->end(); iMuon++){
+
+    muTrackRef = iMuon->innerTrack();
+    if ( muTrackRef.isNull() ) continue;
+
+    if (muTrackRef == theTrackRef) return true;
+  }
+
+  return false;
+}
+ */
+
+
+
+
+
+
 bool
 LambdaB::matchMuonTracks (const edm::Event& iEvent,
                           const vector<reco::TrackRef> theTracks)
@@ -1666,6 +1671,22 @@ LambdaB::matchMuonTracks (const edm::Event& iEvent,
   }
   return false;
 }
+
+
+
+/*
+bool
+LambdaB::matchMuonTracks (const edm::Event& iEvent,
+                          const vector<reco::TrackRef> theTracks)
+{
+  reco::TrackRef theTrackRef;
+  for(unsigned int j = 0; j < theTracks.size(); ++j) {
+    theTrackRef = theTracks[j];
+    if ( matchMuonTrack(iEvent, theTrackRef) ) return true;
+  }
+  return false;
+}
+*/
 
 //-------------------------
 // added on dec 22, 2015
@@ -1712,7 +1733,7 @@ LambdaB::matchLzTrack (const edm::Event& iEvent,
  //-------------------------
 void
 LambdaB::matchLzTrack (const edm::Event& iEvent,
-		       const reco::TrackRef theTrackRef, double & dau1_pt, double & dau2_pt)
+		       const reco::TrackRef theTrackRef, double &dau1_pt, double &dau2_pt)
 {
   //if ( theTrackRef.isNull() ) continue;
 
@@ -1725,22 +1746,25 @@ LambdaB::matchLzTrack (const edm::Event& iEvent,
   for ( reco::VertexCompositeCandidateCollection::const_iterator iLambda
 	  = theLambdas->begin(); iLambda != theLambdas->end(); ++iLambda) {
 
+    // dau1
     theDau1TrackRef = (*(dynamic_cast<const reco::RecoChargedCandidate *>
 			 (iLambda->daughter(0)))).track();
-
-    dau1_pt = theDau1TrackRef->pt();
 
     //if ( ! theDau1TrackRef.isNull() && theDau1TrackRef == theTrackRef) return true;
     if ( theDau1TrackRef.isNull() || theDau1TrackRef != theTrackRef ) continue;
 
+    dau1_pt = (theDau1TrackRef->pt());
+    //cout << "1st dau has eta: " << theDau1TrackRef->eta() << " and charge: " << theDau1TrackRef->charge() << endl;
 
+    // dau2
     theDau2TrackRef = (*(dynamic_cast<const reco::RecoChargedCandidate *>
 			 (iLambda->daughter(1)))).track();
 
-    dau2_pt = theDau2TrackRef->pt();
-
     //if ( ! theDau2TrackRef.isNull() && theDau2TrackRef == theTrackRef) return true;
     if ( theDau2TrackRef.isNull() || theDau2TrackRef != theTrackRef ) continue;
+
+    dau2_pt = (theDau2TrackRef->pt());
+    //cout << "1st dau has eta: "<< theDau1TrackRef->eta() << " and charge: " <<theDau1TrackRef->charge() << endl;
 
   }
 
@@ -1753,11 +1777,23 @@ LambdaB::matchLzTrack (const edm::Event& iEvent,
 // added on 13 dec 2015 //
 //------------------------
 bool
-LambdaB::hasGoodLzVertex(const reco::TransientTrack pionTT,
-			 const reco::TransientTrack protonTT,
-			 double & lz_vtx_cl, double & lz_mass)
-			 
+LambdaB::hasGoodLzVertex(const edm::Event& iEvent, 
+			 const vector<reco::TrackRef> theDaughterTracks, 
+			 RefCountedKinematicTree &lzVertexFitTree, double & lz_vtx_cl)
 {
+
+  reco::TrackRef theTrackRef ;
+  double dau1pt, dau2pt;
+
+  //if (! matchLzTrack(iEvent, theTrackRef, dau1pt, dau2pt) ) return false;
+
+  matchLzTrack(iEvent, theTrackRef, dau1pt, dau2pt) ;
+
+  printf("pt(1st dau): %8.6f, pt(2nd dau): %8.6f \n", dau1pt, dau2pt) ;
+  cout << "pt(1st dau) = " << dau1pt << " , pt(2nd dau) = " << dau2pt << endl;
+
+  reco::TransientTrack dau1TT(theDaughterTracks[0], &(*bFieldHandle_) );
+  reco::TransientTrack dau2TT(theDaughterTracks[1], &(*bFieldHandle_) );
 
   KinematicParticleFactoryFromTransientTrack pFactory;
 
@@ -1765,93 +1801,143 @@ LambdaB::hasGoodLzVertex(const reco::TransientTrack pionTT,
   float ndf = 0.;
   vector<RefCountedKinematicParticle> lzdauParticles;
 
-  lzdauParticles.push_back(pFactory.particle(pionTT,     PionMass_,chi,ndf,   PionMassErr_));
-  lzdauParticles.push_back(pFactory.particle(protonTT, ProtonMass_,chi,ndf, ProtonMassErr_));
+  // assign proton mass to the track w/ higher momentum
+  if ( dau1pt > dau2pt ) {
+    lzdauParticles.push_back(pFactory.particle(dau1TT,ProtonMass_,chi,ndf,ProtonMassErr_));
+    lzdauParticles.push_back(pFactory.particle(dau2TT,  PionMass_,chi,ndf,  PionMassErr_));
+    printf("1st dau: proton, 2nd dau: pion \n");
+   } else{
+    lzdauParticles.push_back(pFactory.particle(dau2TT,ProtonMass_,chi,ndf,ProtonMassErr_));
+    lzdauParticles.push_back(pFactory.particle(dau1TT,  PionMass_,chi,ndf,  PionMassErr_));
+    printf("1st dau: pion, 2nd dau: proton \n");
+   }
+
 
   KinematicParticleVertexFitter fitter;
-  RefCountedKinematicTree lzVertexFitTree = fitter.fit(lzdauParticles);
-  if ( ! lzVertexFitTree->isValid() ) return false ;
+  lzVertexFitTree = fitter.fit(lzdauParticles);
+  if (!lzVertexFitTree->isValid()) return false;
 
+  // added 
   lzVertexFitTree->movePointerToTheTop();
   RefCountedKinematicParticle lz_KP = lzVertexFitTree->currentParticle();
-  RefCountedKinematicVertex lz_KV   = lzVertexFitTree->currentDecayVertex();
-  if ( !lz_KV->vertexIsValid() ) return false;
+  RefCountedKinematicVertex lz_KV = lzVertexFitTree->currentDecayVertex();
+
+  if ( !lz_KV->vertexIsValid()) return false;
 
   lz_vtx_cl = TMath::Prob((double)lz_KV->chiSquared(),
-                          int(rint(lz_KV->degreesOfFreedom())));
+			  int(rint(lz_KV->degreesOfFreedom())));
 
-  lz_mass = lz_KP->currentState().mass();
+  //printf("Lambda0 vtxcl: %8.6f ", lz_vtx_cl);
 
-  if ( (lz_vtx_cl < LzMinVtxCl_) || (lz_mass < LzMinMass_) || (lz_mass > LzMaxMass_) ) return false;
-  //if ( (lz_mass < LzMinMass_) || (lz_mass > LzMaxMass_) ) return false;
-
-  //  printf("lambda0 vtxcl: %6.4f , mass: %6.4f \n", lz_vtx_cl, lz_mass);
+  //if (lz_vtx_cl < LzMinVtxCl_)  return false;
 
   return true;
-
 }
 
 
+bool
+LambdaB::hasGoodLzVertexMKC(const edm::Event& iEvent, const vector<reco::TrackRef> theDaughterTracks, 
+			    RefCountedKinematicTree &lzVertexFitTree, double &lz_vtx_cl)
+{
+  if ( !hasGoodLzVertex(iEvent, theDaughterTracks, lzVertexFitTree, lz_vtx_cl) ) return false;
+  KinematicParticleFitter csFitterLz;
+  KinematicConstraint * lz_c = new MassKinematicConstraint(LzMass_,
+							   LzMassErr_);
+  lzVertexFitTree = csFitterLz.fit(lz_c,lzVertexFitTree);
+
+  delete lz_c;
+  if (!lzVertexFitTree->isValid()) return false;
+
+  return true;
+}
 
 bool
-LambdaB::hasGoodLbVertex(const reco::TransientTrack mu1TT,
-			 const reco::TransientTrack mu2TT,
-			 const reco::TransientTrack pionTT,
-			 const reco::TransientTrack protonTT,
+LambdaB::hasGoodLbMass(RefCountedKinematicTree vertexFitTree,
+			    double & lb_mass)
+{
+  vertexFitTree->movePointerToTheTop();
+  RefCountedKinematicParticle lb_KP = vertexFitTree->currentParticle();
+  lb_mass = lb_KP->currentState().mass();
+  if ( lb_mass < LbMinMass_ || lb_mass > LbMaxMass_ ) return false;
+  return true;
+}
+
+
+bool
+LambdaB::hasGoodLbVertex(const edm::Event& iEvent, const reco::TrackRef mu1Track,
+			 const reco::TrackRef mu2Track,
+			 const vector<reco::TrackRef> LambdaDaughterTracks, double &lz_vtx_cl,
 			 double & lb_vtx_chisq, double & lb_vtx_cl,
 			 double & lb_mass,
-			 RefCountedKinematicTree & vertexFitTree )
+			 RefCountedKinematicTree & vertexFitTree, RefCountedKinematicTree & lzVertexFitTree )
 
 {
 
+  if ( ! hasGoodLzVertexMKC(iEvent, LambdaDaughterTracks, lzVertexFitTree, lz_vtx_cl) )  return false;
+  cout << "hasGoodLzVertex w/ MKC: " << boolalpha << hasGoodLzVertexMKC(iEvent, LambdaDaughterTracks, lzVertexFitTree, lz_vtx_cl) << endl;
+
+  lzVertexFitTree->movePointerToTheTop();
+  RefCountedKinematicParticle lz_KP = lzVertexFitTree->currentParticle();
+
   KinematicParticleFactoryFromTransientTrack pFactory;
+
+  reco::TransientTrack mu1TT(mu1Track, &(*bFieldHandle_) );
+  reco::TransientTrack mu2TT(mu2Track, &(*bFieldHandle_) );
+  //reco::TransientTrack pionTT(pionTrack, &(*bFieldHandle_) );
+  //reco::TransientTrack protonTT(protonTrack, &(*bFieldHandle_) );
+
   float chi = 0.;
   float ndf = 0.;
 
-  // LambdaB -> mu+ mu- Lambda0 (p+ pi-)
+  // /\b -> mu+ mu- /\0 (p+ pi-)                                                                                                                        
   vector<RefCountedKinematicParticle> vFitMCParticles;
-  vFitMCParticles.push_back(pFactory.particle(mu1TT,MuonMass_,
-					      chi,ndf,MuonMassErr_));
-  vFitMCParticles.push_back(pFactory.particle(mu2TT,MuonMass_,
-					      chi,ndf,MuonMassErr_));
-  vFitMCParticles.push_back(pFactory.particle(pionTT, PionMass_, chi,
-					      ndf, PionMassErr_));
-  vFitMCParticles.push_back(pFactory.particle(protonTT, ProtonMass_, chi,
-					      ndf, ProtonMassErr_));
+  vFitMCParticles.push_back(pFactory.particle(   mu1TT,   MuonMass_, chi, ndf,   MuonMassErr_));
+  vFitMCParticles.push_back(pFactory.particle(   mu2TT,   MuonMass_, chi, ndf,   MuonMassErr_));
+  //vFitMCParticles.push_back(pFactory.particle(  pionTT,   PionMass_, chi, ndf,   PionMassErr_));
+  //vFitMCParticles.push_back(pFactory.particle(protonTT, ProtonMass_, chi, ndf, ProtonMassErr_));
+  vFitMCParticles.push_back(lz_KP);
+
 
   KinematicParticleVertexFitter fitter;
   vertexFitTree = fitter.fit(vFitMCParticles);
   if (!vertexFitTree->isValid()) return false;
-  ////cout << "particles fitted to a single vertex found: " << boolalpha << vertexFitTree->isValid() << endl; 
+  cout << "particles fitted to a single vertex found: " << boolalpha << vertexFitTree->isValid() << endl; 
 
   vertexFitTree->movePointerToTheTop();
+  //RefCountedKinematicParticle lb_KP = vertexFitTree->currentParticle();
   RefCountedKinematicVertex lb_KV = vertexFitTree->currentDecayVertex();
+
   if ( !lb_KV->vertexIsValid()) return false;
-  ////cout << "Lb decay vertex found: " << boolalpha << lb_KV->vertexIsValid() << endl;
+  cout << "Lb decay vertex found: " << boolalpha << lb_KV->vertexIsValid() << endl;
+
+  
+  lb_vtx_chisq = lb_KV->chiSquared();
 
   /*
-  lb_vtx_chisq = LbDecayVertexMC->chiSquared();
   if ( LbDecayVertexMC->chiSquared()<0
        || LbDecayVertexMC->chiSquared()>1000 ) return false;
 
-  RefCountedKinematicVertex Lb_KV = vertexFitTree->currentDecayVertex();
-  lb_vtx_cl = ChiSquaredProbability((double)(Lb_KV->chiSquared()),
-				    (double)(Lb_KV->degreesOfFreedom()));
+  cout << "Lb decay vertex chi^2 = " << LbDecayVertexMC->chiSquared() << endl;
+
+  RefCountedKinematicVertex lb_KV = vertexFitTree->currentDecayVertex();
+  lb_vtx_cl = ChiSquaredProbability((double)(lb_KV->chiSquared()),
+                                    (double)(lb_KV->degreesOfFreedom()));
   */
 
 
   lb_vtx_cl = TMath::Prob((double)lb_KV->chiSquared(),
 			  int(rint(lb_KV->degreesOfFreedom())));
 
+  
+  printf("Lb vertexcl: %8.6f \n", lb_vtx_cl);
+
+  //if ( lb_vtx_cl < LbMinVtxCl_ ) return false;
+  
   RefCountedKinematicParticle lb_KP = vertexFitTree->currentParticle();
   lb_mass = lb_KP->currentState().mass();
-
-  if ( (lb_vtx_cl < LbMinVtxCl_) || (lb_mass < LbMinMass_) || (lb_mass > LbMaxMass_) ) return false;
-
-  // printf("lambdaB vtxcl: %6.4f , mass: %6.4f \n", lb_vtx_cl, lb_mass); 
+  printf("Lb mass: %8.6f \n", lb_mass);
 
   return true;
-
 }
 
 
@@ -2261,6 +2347,8 @@ LambdaB::saveLzVariables(RefCountedKinematicTree LzvertexFitTree,
   lzvtxy->push_back(lz_vertex->position().y());
   lzvtxz->push_back(lz_vertex->position().z());
 
+  cout << "Lambda0 vtx info stored." << endl;
+
   // Lambda0 vertex distance to the beam spot
   double LzLSBS, LzLSBSErr;
 
@@ -2274,6 +2362,8 @@ LambdaB::saveLzVariables(RefCountedKinematicTree LzvertexFitTree,
 
   lzlsbs->push_back(LzLSBS);
   lzlsbserr->push_back(LzLSBSErr);
+
+  cout << "Lambda0 length sig. vars stored." << endl;
 
   LzvertexFitTree->movePointerToTheFirstChild(); // Lambda0 proton
   RefCountedKinematicParticle LzDau1 = LzvertexFitTree->currentParticle();
