@@ -1052,14 +1052,14 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
   double MuMuLSBS, MuMuLSBSErr;
   double MuMuCosAlphaBS, MuMuCosAlphaBSErr;
 
-  //double trkM_pt, trkP_pt;
+  double trkM_pt, trkP_pt;
   double trk_pt;
   double lz_mass; 
   //double lzbar_mass;
   double lz_vtx_cl;
-  //double lb_vtx_chisq; 
-  //double lb_vtx_cl;
-  //double lb_mass;
+  double lb_vtx_chisq; 
+  double lb_vtx_cl;
+  double lb_mass;
   //double lbbar_mass;
   double DCALzTrkBS, DCALzTrkBSErr;
   vector<reco::TrackRef> LambdaDaughterTracks;
@@ -1152,7 +1152,7 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 	reco::TrackRef Trackm = iTrackM->track();
 	if ( Trackm.isNull() || (Trackm->charge() != -1) ) continue;
 
-	//trkM_pt = Trackm->pt();
+	trkM_pt = Trackm->pt();
 
 	passed = hasGoodTrack(iEvent, *iTrackM, trk_pt);
 	histos[h_trkpt]->Fill(trk_pt);
@@ -1176,7 +1176,7 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 	  reco::TrackRef Trackp = iTrackP->track();
 	  if ( Trackp.isNull() || (Trackp->charge() != 1) ) continue;
 
-	  //trkP_pt = Trackp->pt();
+	  trkP_pt = Trackp->pt();
 
 	  passed = hasGoodTrack(iEvent, *iTrackP, trk_pt);
 	  // histos[h_trkpt]->Fill(trk_pt);
@@ -1189,52 +1189,89 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 
 	  //printf("track+ pt value: %6.4f \n", trkP_pt);
 
+
+	  // always assign proton to the higher momentum track
+	  if (trkP_pt > trkM_pt){
+	    //printf("+ve track is proton and -ve track is pion\n");
+	    //const reco::TransientTrack TrackprTT(Trackp, &(*bFieldHandle_));
+	    //const reco::TransientTrack TrackpiTT(Trackm, &(*bFieldHandle_));
+	    if (trkP_pt < 1 || trkM_pt < 0.3) continue;
+
+	  } else {
+	    //printf("-ve track is proton and +ve track is pion\n");
+	    //const reco::TransientTrack TrackprTT(Trackm, &(*bFieldHandle_));
+            //const reco::TransientTrack TrackpiTT(Trackp, &(*bFieldHandle_));
+	    if (trkP_pt < 0.3 || trkM_pt < 1) continue;
+	  }
+
+
+	  //printf("trkP_pt : %6.4f, trkM_pt : %6.4f \n", trkP_pt, trkM_pt);
+
 	  // check goodness of two tracks closest approach and the 3D-DCA
-	  if (! calClosestApproachTracks(theTrackpTT, theTrackmTT,
-					 trk_R, trk_Z, trk_DCA)) continue ;
+	  //if (! calClosestApproachTracks(theTrackpTT, theTrackmTT, trk_R, trk_Z, trk_DCA)) continue ;
 
+	  
+	  passed = calClosestApproachTracks(theTrackpTT, theTrackmTT, trk_R, trk_Z, trk_DCA);
+
+	  if (!passed) {
+	    cout << "No closest tracks found, continue.." << endl;
+	    continue;
+	  }
+
+	  //printf("trkR: %6.4f , trkZ: %6.4f \n", trk_R, trk_Z);
 	  if ( (trk_R > TrkMaxR_) || (trk_Z > TrkMaxZ_) ) continue;
-
+	  //printf("trkR: %6.4f , trkZ: %6.4f \n", trk_R, trk_Z);
 	  //printf("track- pt value: %6.4f , track+ pt value: %6.4f \n", trkM_pt, trkP_pt);
 
 	 
-	  // check two tracks vertex for Lamba0  (always assign proton mass to the track w/ higher momentum)
-	  //if (trkP_pt > trkM_pt){
-	  if ( ! hasGoodLzVertex(theTrackmTT, theTrackpTT, lz_vtx_cl, lz_mass) ) continue;
-	  if ( (lz_mass < LzMinMass_) || (lz_mass > LzMaxMass_) ) return false;
+	  // check two tracks vertex for Lambda0  (always assign proton mass to the track w/ higher momentum)
+	  if (trkP_pt > trkM_pt){
+	    passed = hasGoodLzVertex(theTrackmTT, theTrackpTT, lz_vtx_cl, lz_mass);
 
-	  // check two tracks vertex for Lambda0bar
-	  //}else{
-	  if ( ! hasGoodLzVertex(theTrackpTT, theTrackmTT, lz_vtx_cl, lz_mass) ) continue;
-	  if ( (lz_mass < LzMinMass_) || (lz_mass > LzMaxMass_) ) return false;
-	    //}
+	  } else{
+	    passed = hasGoodLzVertex(theTrackpTT, theTrackmTT, lz_vtx_cl, lz_mass);
+
+	  }
+
+
+	  if (!passed) continue;
+	  //if ( (lz_mass < LzMinMass_) || (lz_mass > LzMaxMass_) ) continue;
+
+	  printf("lz mass: %6.4f \n", lz_mass);
+	  printf("lz vtxcl: %6.4f \n", lz_vtx_cl);
+
 
 	  histos[h_lzmass]->Fill(lz_mass);
 	  histos[h_lzvtxcl]->Fill(lz_vtx_cl);
 
 
-	  /*
+
+	  if (trkP_pt > trkM_pt){
 	  // fit LambdaB vertex  mu- mu+ pi- p+
-	  if ( ! hasGoodLbVertex(muTrackmTT, muTrackpTT, theTrackmTT, theTrackpTT,
-				 lb_vtx_chisq, lb_vtx_cl, lb_mass,
-				 vertexFitTree) ) continue;
+	    passed = hasGoodLbVertex(muTrackmTT, muTrackpTT, theTrackmTT, theTrackpTT, lb_vtx_chisq, lb_vtx_cl, lb_mass, vertexFitTree);
 
-	  if ( (lb_mass < LbMinMass_) || (lb_mass > LbMaxMass_) ) continue;
+	    //if ( (lb_mass < LbMinMass_) || (lb_mass > LbMaxMass_) ) continue;
 
+	  } else {
+	  // fit LambdaBbar vertex mu- mu+ pi+ p-
+	    passed = hasGoodLbVertex(muTrackmTT, muTrackpTT, theTrackpTT, theTrackmTT, lb_vtx_chisq, lb_vtx_cl, lb_mass, vertexFitTree);
 
-	  // fit Bdbar vertex mu- mu+ pi+ p-
-	  if ( ! hasGoodLbVertex(muTrackmTT, muTrackpTT, theTrackpTT, theTrackmTT,
-				 lb_vtx_chisq, lb_vtx_cl, lb_mass,     // change to lbbar_mass
-				 barVertexFitTree) ) continue;
+	  //if ( (lb_mass < LbMinMass_) || (lb_mass > LbMaxMass_) ) continue;
 
-	  if ( (lb_mass < LbMinMass_) || (lb_mass > LbMaxMass_) ) continue;
-	  */
-
-	  //histos[h_lbmass]->Fill(lb_mass);
-	  //histos[h_lbvtxcl]->Fill(lb_vtx_cl);
+	  }
 
 
+	  if (!passed) continue;
 
+          printf("lb mass: %6.4f \n", lb_mass);
+          printf("lb vtxcl: %6.4f \n", lb_vtx_cl);
+
+
+	  histos[h_lbmass]->Fill(lb_mass);
+	  histos[h_lbvtxcl]->Fill(lb_vtx_cl);
+
+
+	  /*
 	  nb++;
 
 	  // save the tree variables
@@ -1246,11 +1283,11 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 	  
 	  saveSoftMuonVariables(*iMuonM, *iMuonP, muTrackm, muTrackp);
 
-	  /*
+	 
 	  trkpt->push_back(trk_pt);
 	  trkdcabs->push_back(DCALzTrkBS);
 	  trkdcabserr->push_back(DCALzTrkBSErr);
-	  */	  
+	 
 
 	  lzmass->push_back(lz_mass);
 	  lzvtxcl->push_back(lz_vtx_cl);
@@ -1258,12 +1295,12 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 	  //lbvtxcl->push_back(lb_vtx_cl); 
 
 
-	  /*
+	 
 	  lzbarmass->push_back(lzbar_mass);
 	  lbbarmass->push_back(lbbar_mass);
-	  */
+	 
 	  //lbvtxcl->push_back(lb_vtx_cl);
-
+	  */
 	  
 
 	} // track+ loop
@@ -1276,9 +1313,10 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
     edm::LogInfo("myLb") << "Found " << nb << " LambdaB -> Lambda0 mu+ mu- ";
     printf("---------------------------------------------------------------\n");
     return true;
+  } else {
+    printf("---------------------------------------------------------------\n");
+    return false;
   }
-  return false;
-
 }
 
 
@@ -1474,10 +1512,10 @@ LambdaB::hasGoodTrackDcaPoint (const reco::TransientTrack track,
 
 bool
 LambdaB::calClosestApproachTracks (const reco::TransientTrack trackpTT,
-                                        const reco::TransientTrack trackmTT,
-                                        double & trk_R,
-                                        double & trk_Z,
-                                        double & trk_DCA)
+                                   const reco::TransientTrack trackmTT,
+                                   double & trk_R,
+                                   double & trk_Z,
+                                   double & trk_DCA)
 {
   ClosestApproachInRPhi ClosestApp;
   ClosestApp.calculate(trackpTT.initialFreeState(),
@@ -1753,10 +1791,10 @@ LambdaB::hasGoodLzVertex(const reco::TransientTrack pionTT,
 
   lz_mass = lz_KP->currentState().mass();
 
-  //if ( (lz_vtx_cl < LzMinVtxCl_) || (lz_mass < LzMinMass_) || (lz_mass > LzMaxMass_) ) return false;
+  if ( (lz_vtx_cl < LzMinVtxCl_) || (lz_mass < LzMinMass_) || (lz_mass > LzMaxMass_) ) return false;
   //if ( (lz_mass < LzMinMass_) || (lz_mass > LzMaxMass_) ) return false;
 
-  //printf("lambda0 vtxcl: %6.4f , mass: %6.4f \n", lz_vtx_cl, lz_mass);
+  printf("lambda0 vtxcl: %6.4f , mass: %6.4f \n", lz_vtx_cl, lz_mass);
 
   return true;
 
@@ -1817,9 +1855,9 @@ LambdaB::hasGoodLbVertex(const reco::TransientTrack mu1TT,
   RefCountedKinematicParticle lb_KP = vertexFitTree->currentParticle();
   lb_mass = lb_KP->currentState().mass();
 
-  //if ( (lb_vtx_cl < LbMinVtxCl_) || (lb_mass < LbMinMass_) || (lb_mass > LbMaxMass_) ) return false;
+  if ( (lb_vtx_cl < LbMinVtxCl_) || (lb_mass < LbMinMass_) || (lb_mass > LbMaxMass_) ) return false;
 
-  ///printf("lambdaB vtxcl: %6.4f , mass: %6.4f \n", lb_vtx_cl, lb_mass); 
+  printf("lambdaB vtxcl: %6.4f , mass: %6.4f \n", lb_vtx_cl, lb_mass); 
 
   return true;
 
