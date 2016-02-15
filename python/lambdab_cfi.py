@@ -191,8 +191,8 @@ process.ntuple = cms.EDAnalyzer(
     # Lambda0 mass = 1115.683 +/- 0.006 MeV, considered +/-200 MeV around Lambda0 mass
     LzMinMass = cms.untracked.double(0.916),
     LzMaxMass = cms.untracked.double(1.316),
-    LzMinVtxCl = cms.untracked.double(0.01),
-    LbMinVtxCl = cms.untracked.double(0.01), 
+    LzMinVtxCl = cms.untracked.double(0.02),
+    LbMinVtxCl = cms.untracked.double(0.001), 
     LbMinMass = cms.untracked.double(4.0), # [GeV/c2] 
     LbMaxMass = cms.untracked.double(7.0), # [GeV/c2]  lambdaB mass = 5.6195 GeV 
 
