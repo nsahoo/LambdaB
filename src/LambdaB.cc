@@ -615,7 +615,7 @@ LambdaB::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       iSetup.get<IdealMagneticFieldRecord>().get(bFieldHandle_);
       if ( bFieldHandle_.isValid() && hasPrimaryVertex(iEvent) ) {
 	buildLbToLzMuMu(iEvent) ;
-	if (IsMonteCarlo_) saveTruthMatch(iEvent);
+	//	if (IsMonteCarlo_) saveTruthMatch(iEvent);
 	n_selected_ += 1;               
       }
     }
@@ -1283,15 +1283,15 @@ LambdaB::buildLbToLzMuMu(const edm::Event& iEvent)
 	  saveSoftMuonVariables(*iMuonM, *iMuonP, muTrackm, muTrackp);
 
 	 
-	  //trkpt->push_back(trk_pt);
+	  trkpt->push_back(trk_pt);
 	  //trkdcabs->push_back(DCALzTrkBS);
 	  //trkdcabserr->push_back(DCALzTrkBSErr);
-	 
+
 
 	  //lzmass->push_back(lz_mass);
 	  //lzvtxcl->push_back(lz_vtx_cl);
-	  //lbmass->push_back(lb_mass);
-	  //lbvtxcl->push_back(lb_vtx_cl); 
+	  lbmass->push_back(lb_mass);
+	  lbvtxcl->push_back(lb_vtx_cl); 
 	 	 
    
 	} // track+ loop
